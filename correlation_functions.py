@@ -168,7 +168,7 @@ dt = tau/100.
 initial_energy = 1
 initial_position = 2
 initial_velocity = 0
-max_time = 50
+max_time = 10
 
 times, positions, velocities, total_energies = velocity_verlet(energy_force, max_time, dt, initial_position, initial_velocity, m)
 
@@ -179,7 +179,7 @@ plt.figure()
 plt.plot(times,positions,marker='o',linestyle='')
 plt.plot(times,Cxx, marker='*',linestyle='')
 plt.xlabel('time')
-plt.show()
+plt.savefig('file')
 
 # eventually, loop over a number of traj
 # for each traj generate intial conditions and run
