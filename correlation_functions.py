@@ -144,7 +144,7 @@ def velocity_verlet(potential, max_time, dt, initial_position, initial_velocity,
     
     return save_times, positions, velocities, total_energies
 
-# calculating position auto correlation function
+# calculating position auto correlation function for 1 trajectory
 def position_auto_correlation_function():
     correlation_function = []
 
@@ -157,7 +157,7 @@ def position_auto_correlation_function():
 k = 3
 m = 2
 
-omega = np.sqrt(k)
+omega = np.sqrt(k/m)
 tau = 2*np.pi/omega
 dt = tau/100.
 
@@ -181,11 +181,11 @@ plt.plot(times,Cxx, marker='*',linestyle='')
 plt.xlabel('time')
 plt.savefig('file')
 
-# eventually, loop over a number of traj
-# for each traj generate intial conditions and run
-# will get position and momentum as a function of time.
-# correlation function of position position. for one trajectory - store position. C(t) = x(0) * x(t) for 1 traj. overall ensemble average - average over lots of diff trajectories
-# calculate position auto correlation function
+# TODO - eventually, loop over a number of traj
+# TODO - for each traj generate intial conditions and run
+    # will get position and momentum as a function of time.
+    # TODO - how to generate initial conditions
+# TODO -calculate overall ensemble average - average over lots of diff trajectories
 
 
 # run CM DVR
@@ -196,4 +196,8 @@ grid_size = 51
 grid = get_exact_grid(x_min,x_max,grid_size)
 v = harmonic_oscillator(k,grid)
 
+# returns c - ground state wavefunction, E - eigenstates(?), H - hamiltonian, of the system
 c, E, H = colbert_miller_DVR(grid_size,grid, m, v)
+
+# TODO - use the CM-DVR results to calculate the Kubo transform position auto correlation function
+# TODO - what should the operators be?
