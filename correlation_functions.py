@@ -199,5 +199,4 @@ v = harmonic_oscillator(k,grid)
 # returns c - ground state wavefunction, E - eigenstates(?), H - hamiltonian, of the system
 c, E, H = colbert_miller_DVR(grid_size,grid, m, v)
 
-# TODO - use the CM-DVR results to calculate the Kubo transform position auto correlation function
-# TODO - what should the operators be?
+# TODO - use the CM-DVR results to calculate the exact position auto correlation function. The operator is purely the position of the particle!
