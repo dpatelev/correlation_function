@@ -174,13 +174,6 @@ times, positions, velocities, total_energies = velocity_verlet(energy_force, max
 
 Cxx = position_auto_correlation_function()
 
-# #plot position and auto correlation function
-plt.figure()
-plt.plot(times,positions,marker='o',linestyle='')
-plt.plot(times,Cxx, marker='*',linestyle='')
-plt.xlabel('time')
-plt.savefig('file')
-
 # TODO - eventually, loop over a number of traj
 # TODO - for each traj generate intial conditions and run
     # will get position and momentum as a function of time.
