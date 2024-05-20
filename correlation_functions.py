@@ -83,19 +83,14 @@ def colbert_miller_DVR(ngrid, x, m, v):
     E, c = np.linalg.eigh(H)
 
     #  Normalize each eigenfunction using simple quadrature.
-    for i in range(ngrid):  # ONLY FOR FIRST EIGENFUNCTION !!!!!
-        # csum = 0.0
-        # for j in range(ngrid):
-        #    csum += c[j, i] * c[j, i] * dx
-        # print("csum1 = ",csum)
-        # c[:, i] = c[:, i] / np.sqrt(csum)
+    for i in range(ngrid):
         csum = np.trapz(np.conj(c[:,i]) * c[:,i], x)
-        #print("csum = ",csum,dx)
         c[:, i] = c[:, i] / np.sqrt(csum)
         E[i] = np.real(E[i])
 
     return c, E, H
 
+# Performing classical MD
 # energy and force for harmonic oscillator
 
 def energy_force(x,k):
@@ -161,14 +156,12 @@ omega = np.sqrt(k/m)
 tau = 2*np.pi/omega
 dt = tau/100.
 
-# actually run MD
-
-# initial conditions
-
 initial_energy = 1
 initial_position = 2
 initial_velocity = 0
 max_time = 10
+
+# run MD
 
 times, positions, velocities, total_energies = velocity_verlet(energy_force, max_time, dt, initial_position, initial_velocity, m)
 
@@ -176,8 +169,8 @@ Cxx = position_auto_correlation_function()
 
 # TODO - eventually, loop over a number of traj
 # TODO - for each traj generate intial conditions and run
-    # will get position and momentum as a function of time.
     # TODO - how to generate initial conditions
+    # will get position and momentum as a function of time.
 # TODO -calculate overall ensemble average - average over lots of diff trajectories
 
 
