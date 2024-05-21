@@ -2,7 +2,6 @@
 
 import numpy as np
 import numpy.typing as npt
-import matplotlib.pyplot as plt
 
 # generate grids - https://github.com/ScottHabershon/PS/blob/main/src/grids.py
 
@@ -21,7 +20,7 @@ def get_exact_grid(x_min: float, x_max: float, exact_grid_size: int) -> npt.NDAr
     """
     xgrid_exact = np.linspace(x_min, x_max, exact_grid_size)
     dx = xgrid_exact[1] - xgrid_exact[0]
-    return xgrid_exact
+    return xgrid_exact, dx
 
 # generate 1D potentials
 # 0.5kx^2 - harmonic oscillator
@@ -49,7 +48,7 @@ def colbert_miller_DVR(ngrid, x, m, v):
     Args:
         ngrid: Number of grid points
         x[:]: Positions of grid points.
-        m: m of particle
+        m: mass of particle
         v[:]: 1-D potential energy, calculated at grid points.
 
     Returns:
@@ -81,6 +80,7 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     #  Solve the eigenvalue problem using the linalg.eigh
     E, c = np.linalg.eigh(H)
+    E = E.astype('float128',copy=False)
 
     #  Normalize each eigenfunction using simple quadrature.
     for i in range(ngrid):
@@ -93,13 +93,13 @@ def colbert_miller_DVR(ngrid, x, m, v):
 # Performing classical MD
 # energy and force for harmonic oscillator
 
-def energy_force(x,k):
+def harmonic_energy_force(x,k):
     energy = 0.5*k*x**2
-    force = -k*x
+    force = -k*x # -ve derivative of energy
 
     return energy, force
 
-# velocity verlet
+# velocity verlet functions
 
 def update_position(x,v,F,dt,m):
     x_new = x + v*dt + 0.5*m*F*dt*dt
@@ -159,17 +159,19 @@ dt = tau/100.
 initial_energy = 1
 initial_position = 2
 initial_velocity = 0
-max_time = 10
+
+max_time = 1000000
 
 # run MD
 
-times, positions, velocities, total_energies = velocity_verlet(energy_force, max_time, dt, initial_position, initial_velocity, m)
+times, positions, velocities, total_energies = velocity_verlet(harmonic_energy_force, max_time, dt, initial_position, initial_velocity, m)
 
-Cxx = position_auto_correlation_function()
+Cxx = position_auto_correlation_function() # Cxx is array containing correlation function
+print(sum(Cxx)) # sum of correlation function array. Ran MD at max_time = 1000000, calc. TCF = 24.260024382957504
 
-# TODO - eventually, loop over a number of traj
+# TODO - eventually, loop over a number of traj for harmonic oscillator
 # TODO - for each traj generate intial conditions and run
-    # TODO - how to generate initial conditions
+    # TODO - how to generate initial conditions? what initial conditions?
     # will get position and momentum as a function of time.
 # TODO -calculate overall ensemble average - average over lots of diff trajectories
 
@@ -179,10 +181,34 @@ x_min = -5
 x_max = 5
 grid_size = 51
 
-grid = get_exact_grid(x_min,x_max,grid_size)
+grid, dx = get_exact_grid(x_min,x_max,grid_size)
 v = harmonic_oscillator(k,grid)
 
-# returns c - ground state wavefunction, E - eigenstates(?), H - hamiltonian, of the system
-c, E, H = colbert_miller_DVR(grid_size,grid, m, v)
+# returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
+c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 
-# TODO - use the CM-DVR results to calculate the exact position auto correlation function. The operator is purely the position of the particle!
+# use the CM-DVR results to calculate the exact position auto correlation function. The operator is purely the position of the particle!
+
+# Kubo TCF eqn
+# C = 1/(beta*Z) sum over i and j [e^(-beta * Ei) x e^(-{i(Ei - Ej)t / hbar}) x Aij x Bji x [{1 - e^(-beta*(Ej-Ei))}/{Ej-Ei}]
+# confirm whether this is actually correct. it should be.
+def Kubo_TCF(beta, grid_size, grid, T, E, c, dx, t):
+    for i in range(0, grid_size):
+        Z = 1 / np.exp(-beta*E[i])
+        C_1 = np.exp(-beta * E[i])
+        for j in range(0, grid_size):
+            C_2 = np.exp(-i*(E[i]- E[j])*t)
+            Aij = np.trapz(np.conj(c[:,i])* grid[i] * c[:,j], dx = dx)
+            Bji = np.trapz(np.conj(c[:,j])* grid[j] * c[:,j], dx = dx)
+            if i != j: # i == j -> 1-exp(0) = 0, AND div by 0 occurs
+                C_3 = (1-np.exp(-beta*(E[j]-E[i])))/(E[j]-E[i])
+        C = (1 / beta*Z) * C_1 * C_2 * Aij * Bji * C_3
+    return C
+
+t = 0 # what is this t actually supposed to be
+T = 298.15 # assumed RT
+k_b = 8.61733262*np.exp(-5) # get from scipy constants
+beta = 1/(k_b*T)
+
+C = Kubo_TCF(beta, grid_size, grid, T, E, c, dx, t)
+print(C) # Kubo TCF for these conditions == 25.121253139611380905
