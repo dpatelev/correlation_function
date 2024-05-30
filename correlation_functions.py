@@ -80,7 +80,7 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     #  Solve the eigenvalue problem using the linalg.eigh
     E, c = np.linalg.eigh(H)
-    E = E.astype('float128',copy=False)
+    E = E.astype('float128',copy=False) # not needed for mac M1 systems
 
     #  Normalize each eigenfunction using simple quadrature.
     for i in range(ngrid):
@@ -160,19 +160,21 @@ initial_energy = 1
 initial_position = 2
 initial_velocity = 0
 
-max_time = 1000000
+max_time = 10
 
 # run MD
 
 times, positions, velocities, total_energies = velocity_verlet(harmonic_energy_force, max_time, dt, initial_position, initial_velocity, m)
 
 Cxx = position_auto_correlation_function() # Cxx is array containing correlation function
-print(sum(Cxx)) # sum of correlation function array. Ran MD at max_time = 1000000, calc. TCF = 24.260024382957504
+print("TCF using classical MD = ", sum(Cxx), "with max_time:", max_time) # sum of correlation function array. Ran MD at max_time = 1000000, calc. TCF = 24.260024382957504
 
 # TODO - eventually, loop over a number of traj for harmonic oscillator
 # TODO - for each traj generate intial conditions and run
-    # TODO - how to generate initial conditions? what initial conditions?
+    # TODO - generate initial conditions from constant temperature ensemble.
+    # Run initial MD trajectory with a thermostat (Anderson) attached. After equilibration period, run constant-energy simulation to accumulate the correlation function, which is repeated for lots of initial conditions
     # will get position and momentum as a function of time.
+    # loop over set time values and calculate the correlation function at these times - MD code already does this, using save_frequency and step_number.
 # TODO -calculate overall ensemble average - average over lots of diff trajectories
 
 
@@ -189,26 +191,23 @@ c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 
 # use the CM-DVR results to calculate the exact position auto correlation function. The operator is purely the position of the particle!
 
-# Kubo TCF eqn
-# C = 1/(beta*Z) sum over i and j [e^(-beta * Ei) x e^(-{i(Ei - Ej)t / hbar}) x Aij x Bji x [{1 - e^(-beta*(Ej-Ei))}/{Ej-Ei}]
-# confirm whether this is actually correct. it should be.
 def Kubo_TCF(beta, grid_size, grid, T, E, c, dx, t):
     for i in range(0, grid_size):
-        Z = 1 / np.exp(-beta*E[i])
+        Z = 1 / np.exp(-beta * E[i])
         C_1 = np.exp(-beta * E[i])
         for j in range(0, grid_size):
-            C_2 = np.exp(-i*(E[i]- E[j])*t)
-            Aij = np.trapz(np.conj(c[:,i])* grid[i] * c[:,j], dx = dx)
-            Bji = np.trapz(np.conj(c[:,j])* grid[j] * c[:,j], dx = dx)
+            C_2 = np.exp(-1j*(E[i]- E[j])*t) # hbar = 1 - assume atomic units
+            Aij = np.trapz(np.conj(c[:,i]) * grid[i] * c[:,j], dx = dx)
+            Bji = np.trapz(np.conj(c[:,j]) * grid[j] * c[:,j], dx = dx)
             if i != j: # i == j -> 1-exp(0) = 0, AND div by 0 occurs
-                C_3 = (1-np.exp(-beta*(E[j]-E[i])))/(E[j]-E[i])
+                C_3 = (1 - np.exp(-beta * (E[j]-E[i]))) / (E[j]-E[i])
         C = (1 / beta*Z) * C_1 * C_2 * Aij * Bji * C_3
     return C
 
-t = 0 # what is this t actually supposed to be
+t = 0 # loop over series of t from 0 to a maximum - times at which we want to calculate the TCF.
 T = 298.15 # assumed RT
 k_b = 8.61733262*np.exp(-5) # get from scipy constants
 beta = 1/(k_b*T)
 
 C = Kubo_TCF(beta, grid_size, grid, T, E, c, dx, t)
-print(C) # Kubo TCF for these conditions == 25.121253139611380905
+print("Kubo TCF = ", C) # Kubo TCF for these conditions == 25.121253139611380905
