@@ -2,7 +2,9 @@
 
 import numpy as np
 import numpy.typing as npt
+import matplotlib.pyplot as plt
 
+# CM-DVR functions
 # generate grids - https://github.com/ScottHabershon/PS/blob/main/src/grids.py
 
 def get_exact_grid(x_min: float, x_max: float, exact_grid_size: int) -> npt.NDArray:
@@ -90,7 +92,22 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     return c, E, H
 
-# Performing classical MD
+# calculate Kubo TCF from CM-DVR results
+# TODO - FIX - this is incorrect, it should give different values for different timesteps
+def Kubo_TCF(beta, grid_size, grid, E, c, dx, times):
+    for i in range(0, grid_size):
+        Z = 1 / np.exp(-beta * E[i])
+        C_1 = np.exp(-beta * E[i])
+        for j in range(0, grid_size):
+            C_2 = np.exp(-1j*(E[i]- E[j])*times) # hbar = 1 - assume atomic units
+            Aij = np.trapz(np.conj(c[:,i]) * grid[i] * c[:,j], dx = dx)
+            Bji = np.trapz(np.conj(c[:,j]) * grid[j] * c[:,i], dx = dx)
+            if i != j: # i == j -> 1-exp(0) = 0, AND div by 0 occurs
+                C_3 = (1 - np.exp(-beta * (E[j]-E[i]))) / (E[j]-E[i])
+    C = (1 / beta*Z) * C_1 * C_2 * Aij * Bji * C_3
+    return C
+
+# Classical MD functions
 # energy and force for harmonic oscillator
 
 def harmonic_energy_force(x,k):
@@ -109,6 +126,7 @@ def update_velocity(v,F_new,F_old,dt,m):
     v_new = v + 0.5*m*(F_old+F_new)*dt
     return v_new
 
+# TODO - change function so it only does one timestep
 def velocity_verlet(potential, max_time, dt, initial_position, initial_velocity, m, save_frequency=1):
     x = initial_position
     v = initial_velocity # p = mv
@@ -143,40 +161,49 @@ def velocity_verlet(potential, max_time, dt, initial_position, initial_velocity,
 def position_auto_correlation_function():
     correlation_function = []
 
-    for t in range(len(positions)):
+    for t in range(len(times)):
         cf_t = positions[0] * positions[t]
         correlation_function.append(cf_t)
     return correlation_function
+
+# TODO - loop over a number of traj for harmonic oscillator
+
+# TODO - for each traj generate intial conditions and run
+# TODO - MD timestep - function for ONLY ONE TIMESTEP, and lopp for required timesteps
+    # TODO - generate initial conditions from constant temperature ensemble
+    # Run initial MD trajectory with a thermostat (Andersen) attached
+        # Sample initial velocity/momenta of particle
+        # Calculate initial forces on particle
+        # Equilibrate for set number of timesteps - Andersen thermostat
+        # Resample initial velocities/momenta
+
+    # Run MD trajectory and get position
+    # Accumulate correlation function
+    # Average correlation function - divide by no of trajectories
+
+# TODO - calculate overall ensemble average - average over lots of diff trajectories 
 
 # initialise variables
 k = 3
 m = 2
 
-omega = np.sqrt(k/m)
-tau = 2*np.pi/omega
-dt = tau/100.
-
 initial_energy = 1
 initial_position = 2
 initial_velocity = 0
 
-max_time = 10
+dt = 0.1
+max_time = 20
 
-# run MD
-
+# After equilibration period, run constant-energy simulation to accumulate the correlation function, which is repeated for lots of initial conditions
+# loop for nt timesteps after VV func changed
 times, positions, velocities, total_energies = velocity_verlet(harmonic_energy_force, max_time, dt, initial_position, initial_velocity, m)
 
-Cxx = position_auto_correlation_function() # Cxx is array containing correlation function
-print("TCF using classical MD = ", sum(Cxx), "with max_time:", max_time) # sum of correlation function array. Ran MD at max_time = 1000000, calc. TCF = 24.260024382957504
+# loop over time values and calculate the correlation function
+C_t = position_auto_correlation_function() # C_t is array containing correlation function
+print(C_t)
 
-# TODO - eventually, loop over a number of traj for harmonic oscillator
-# TODO - for each traj generate intial conditions and run
-    # TODO - generate initial conditions from constant temperature ensemble.
-    # Run initial MD trajectory with a thermostat (Anderson) attached. After equilibration period, run constant-energy simulation to accumulate the correlation function, which is repeated for lots of initial conditions
-    # will get position and momentum as a function of time.
-    # loop over set time values and calculate the correlation function at these times - MD code already does this, using save_frequency and step_number.
-# TODO -calculate overall ensemble average - average over lots of diff trajectories
-
+plt.plot(times,C_t)
+plt.savefig('file.png')
 
 # run CM DVR
 x_min = -5
@@ -189,25 +216,7 @@ v = harmonic_oscillator(k,grid)
 # returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
 c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 
-# use the CM-DVR results to calculate the exact position auto correlation function. The operator is purely the position of the particle!
-
-def Kubo_TCF(beta, grid_size, grid, T, E, c, dx, t):
-    for i in range(0, grid_size):
-        Z = 1 / np.exp(-beta * E[i])
-        C_1 = np.exp(-beta * E[i])
-        for j in range(0, grid_size):
-            C_2 = np.exp(-1j*(E[i]- E[j])*t) # hbar = 1 - assume atomic units
-            Aij = np.trapz(np.conj(c[:,i]) * grid[i] * c[:,j], dx = dx)
-            Bji = np.trapz(np.conj(c[:,j]) * grid[j] * c[:,j], dx = dx)
-            if i != j: # i == j -> 1-exp(0) = 0, AND div by 0 occurs
-                C_3 = (1 - np.exp(-beta * (E[j]-E[i]))) / (E[j]-E[i])
-        C = (1 / beta*Z) * C_1 * C_2 * Aij * Bji * C_3
-    return C
-
-t = 0 # loop over series of t from 0 to a maximum - times at which we want to calculate the TCF.
-T = 298.15 # assumed RT
-k_b = 8.61733262*np.exp(-5) # get from scipy constants
-beta = 1/(k_b*T)
-
-C = Kubo_TCF(beta, grid_size, grid, T, E, c, dx, t)
-print("Kubo TCF = ", C) # Kubo TCF for these conditions == 25.121253139611380905
+t = np.arange(0,max_time, 0.1) # same times used in classical MD
+beta = 1
+C = Kubo_TCF(beta, grid_size, grid, E, c, dx, t)
+print(C)
