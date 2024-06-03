@@ -184,12 +184,12 @@ def position_auto_correlation_function():
 # TODO - calculate overall ensemble average - average over lots of diff trajectories 
 
 # initialise variables
-k = 3
-m = 2
+k = 1
+m = 1
 
-initial_energy = 1
-initial_position = 2
-initial_velocity = 0
+initial_energy = 2
+initial_position = 0.1
+initial_velocity = 1
 
 dt = 0.1
 max_time = 20
@@ -203,6 +203,8 @@ C_t = position_auto_correlation_function() # C_t is array containing correlation
 print(C_t)
 
 plt.plot(times,C_t)
+plt.plot(times,positions)
+plt.plot(times,total_energies)
 plt.savefig('file.png')
 
 # run CM DVR
@@ -219,4 +221,3 @@ c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 t = np.arange(0,max_time, 0.1) # same times used in classical MD
 beta = 1
 C = Kubo_TCF(beta, grid_size, grid, E, c, dx, t)
-print(C)
