@@ -1,7 +1,7 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
 # TODO - add docstrings
-
+import sys
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
@@ -84,7 +84,8 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     #  Solve the eigenvalue problem using the linalg.eigh
     E, c = np.linalg.eigh(H)
-    E = E.astype('float128',copy=False) # not needed for MacOS systems
+    if not sys.platform.startswith('darwin'): # not required for mac OS, # TODO 17.06 / 18.06 - check if the float requirement is really needed on Ubuntu
+        E = E.astype('float128',copy=False)
 
     #  Normalize each eigenfunction using simple quadrature.
     for i in range(ngrid):
@@ -96,7 +97,7 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
 # calculate Kubo TCF from CM-DVR results
 
-def Kubo_TCF(grid, E, c, dx, times, beta=1):
+def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     Z = 0.0
     for i in range(0, len(E)):
         Z += np.exp(-beta * E[i])
@@ -104,8 +105,8 @@ def Kubo_TCF(grid, E, c, dx, times, beta=1):
     nt = len(times)
     C = np.zeros(nt, dtype = 'complex')
 
-    for i in range(10): # first 10 eigenvalues
-       for j in range(10):
+    for i in range(range_E):
+       for j in range(range_E):
             t1 = np.exp(-beta*E[i])
             t2 = np.exp(-1j * (E[i]- E[j]) * times) # hbar = 1 - assume atomic units
             Aij = np.trapz(np.conj(c[:,i]) * grid[:] * c[:,j], dx = dx) # integrate over ALL grid points!
@@ -138,7 +139,9 @@ v = potential(grid)
 # returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
 c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 
-C = Kubo_TCF(grid, E, c, dx, t, beta=1)
+# set range of eigenvalues to use when calculating TCF - can use all (set to len(E))!
+range_E = 10
+C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=1)
 
 plt.plot(t, C)
 plt.savefig('Kubo.png')
