@@ -1,5 +1,7 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
+# TODO - add docstrings
+
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
@@ -82,7 +84,7 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     #  Solve the eigenvalue problem using the linalg.eigh
     E, c = np.linalg.eigh(H)
-    E = E.astype('float128',copy=False)
+    E = E.astype('float128',copy=False) # not needed for MacOS systems
 
     #  Normalize each eigenfunction using simple quadrature.
     for i in range(ngrid):
@@ -107,7 +109,7 @@ def Kubo_TCF(grid, E, c, dx, times, beta=1):
             t1 = np.exp(-beta*E[i])
             t2 = np.exp(-1j * (E[i]- E[j]) * times) # hbar = 1 - assume atomic units
             Aij = np.trapz(np.conj(c[:,i]) * grid[:] * c[:,j], dx = dx) # integrate over ALL grid points!
-            Bji = np.trapz(np.conj(c[:,j]) * grid[:] * c[:,i], dx = dx)
+            Bji = np.trapz(np.conj(c[:,j]) * grid[:] * c[:,i], dx = dx) # grid[:] == the operator
             if i != j: 
                 t3 = (1 - np.exp(-beta * (E[j]-E[i]))) / (E[j]-E[i])
             else: # limit of (1 - exp(-beta * x)) / x = beta
@@ -145,4 +147,6 @@ plt.savefig('Kubo.png')
     # how to bound them?
     # how to randomly generate - what parameters are required for random generation? General format for potential?
 
-# TODO = output Kubo TCF in an ideal data format for all the potentials
+# save data to file
+data = np.column_stack((t,C))
+np.savetxt('output.dat', data, fmt=('%5.2f', '%5.10f'))
