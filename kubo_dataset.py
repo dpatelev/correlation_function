@@ -1,6 +1,5 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
-# TODO - add docstrings
 import sys
 import numpy as np
 import numpy.typing as npt
@@ -21,6 +20,8 @@ def get_exact_grid(x_min: float, x_max: float, exact_grid_size: int) -> npt.NDAr
     :type exact_grid_size: int
     :return: xgrid_exact
     :rtype: npt.NDArray
+    :return: dx
+    :rtype: float
     """
     xgrid_exact = np.linspace(x_min, x_max, exact_grid_size)
     dx = xgrid_exact[1] - xgrid_exact[0]
@@ -57,6 +58,8 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     Returns:
         c[:,0]: The ground-state wavefunction.
+        E: The eigenvalues of the system.
+        H: The Hamiltonian of the system.
     """
 
     #  Atomic units:
@@ -98,13 +101,31 @@ def colbert_miller_DVR(ngrid, x, m, v):
 # calculate Kubo TCF from CM-DVR results
 
 def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
+    """
+    Calculates the Kubo transformed correlation function on the given grid, with the given eigenvalues and wavefunctions.
+
+    Args:
+    grid: linearly spaced grid
+    E: array of eigenvalues of the system
+    c[;0]: the groundstate wavefunction of the system
+    dx: grid spacing
+    times: array of timesteps
+    range_E: range of eigenvalues to calculate the TCF with
+    beta: inverse temperature (1/k_b*T)
+
+    Returns:
+    C: The Kubo TCF calculated at each timestep in times
+
+    """
+    # calculate and accumulate the partition function for the entire system
     Z = 0.0
     for i in range(0, len(E)):
         Z += np.exp(-beta * E[i])
 
     nt = len(times)
-    C = np.zeros(nt, dtype = 'complex')
+    C = np.zeros(nt, dtype = 'complex') # create empty array of length times for TCF
 
+    # calculate and accumulate individual TCF terms over the eigenvalues i,j
     for i in range(range_E):
        for j in range(range_E):
             t1 = np.exp(-beta*E[i])
@@ -121,7 +142,6 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     return C
 
 # initialise variables
-k = 1
 m = 1
 
 dt = 0.1
