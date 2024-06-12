@@ -170,6 +170,6 @@ plt.savefig('Kubo.png')
     # how to bound them?
     # how to randomly generate - what parameters are required for random generation? General format for potential?
 
-# save data to file
+# save Kubo TCF data to file - also potential data to file
 data = np.column_stack((t,C))
-np.savetxt('output.dat', data, fmt=('%5.2f', '%5.10f'))
+np.savetxt('output.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
