@@ -122,6 +122,9 @@ def generate_polynomial(nord: int, xgrid: npt.NDArray, coeff_min: float, coeff_m
                     return Vtarg, coeff, order, vm
 
 def random_potentials(number_of_potentials, nord, grid, coeff_min, coeff_max, v_min, v_max):
+    # Generates potentials of maximum order of nord of the form
+    # V(x) = sum_{k=1}^{nord} a_{k} x^{k}
+    # a_k coefficients are selected randomly from the range coeff_min to coeff_max
     grid = grid
     nord = nord
     coeff_min = coeff_min
@@ -283,6 +286,8 @@ def calculate_TCF(npot, range_E, beta, test=False):
             v = np.loadtxt(f'{dat}potential_{i}.dat')
             
             plt.plot(grid, v)
+            plt.xlabel("Position")
+            plt.ylabel("V(x)")
             plt.savefig(f'{pot_png}potential_{i}.png')
             plt.close()
 
@@ -296,6 +301,8 @@ def calculate_TCF(npot, range_E, beta, test=False):
             data = np.column_stack((t,C))
             np.savetxt(f'{kubo_dat}Kubo_{i}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
             plt.plot(t, C)
+            plt.xlabel("Time")
+            plt.ylabel("Kubo TCF")
             plt.savefig(f'{kubo_png}Kubo_{i}.png')
             plt.close()
             print(f'Saved to {kubo_png}Kubo_{i}.png')
