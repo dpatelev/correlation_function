@@ -137,7 +137,8 @@ def random_potentials(number_of_potentials, nord, grid, coeff_min, coeff_max, v_
         os.makedirs(directory)
     for i in range(number_of_potentials):
         v, coeffs, order, vmin = polynomial(nord, grid, coeff_min=coeff_min, coeff_max=coeff_max, v_min=v_min, v_max=v_max)
-        np.savetxt(f'{directory}potential_{i}.dat', v, fmt=('%5.10f'), header='V')
+        np.savetxt(f'{directory}potential_{i}.dat', np.column_stack((grid, v)), fmt=('%5.10f'), header='x\tV')
+        np.savetxt(f'{directory}potential_{i}_data.dat', np.hstack((coeffs, order)), fmt=('%5.10f'), header='coeffs & order')
 
 # solve Schrödinger eqn for potentials
 # CM DVR taken from https://github.com/ScottHabershon/PS/blob/main/src/exact_solver.py
@@ -237,7 +238,7 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     C = C.real 
     return C
 
-def calculate_TCF(npot, range_E, beta, test=False):
+def calculate_TCF(npot, range_E, beta, grid, test=False):
 
     if test == True: # generate potentials from 2004 paper and calculate TCF
         print("Using potentials calculated with potential_2004")
@@ -283,7 +284,7 @@ def calculate_TCF(npot, range_E, beta, test=False):
 
         for i in range(npot):
             print(f'Loading potential_{i}...')
-            v = np.loadtxt(f'{dat}potential_{i}.dat')
+            grid, v = np.loadtxt(f'{dat}potential_{i}.dat', unpack=True)
             
             plt.plot(grid, v)
             plt.xlabel("Position")
@@ -331,6 +332,6 @@ v_min = 5
 v_max = 100000
 
 # if test= True - Manolopolous (2004), False == random potentials
-calculate_TCF(npot,range_E=10, beta=1,test=False)
+calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=False)
 
 
