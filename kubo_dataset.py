@@ -42,10 +42,10 @@ def potential_2004(grid: npt.NDArray):
     if not os.path.exists(directory):
         os.makedirs(directory)
     v1 = 0.25 * grid**4 # Manolopoulos (2004)
-    np.savetxt(f'{directory}potential_1.dat', v1, fmt=('%5.10f'), header='V')
+    np.savetxt(f'{directory}potential_1.dat', np.column_stack((grid, v1)), fmt=('%5.10f'), header='x\tV = 0.25x**4')
 
     v2 = 0.5*(grid**2) + 0.1*(grid**3) + 0.01*(grid**4) # Manolopoulos (2004)
-    np.savetxt(f'{directory}potential_2.dat', v2, fmt=('%5.10f'), header='V')
+    np.savetxt(f'{directory}potential_2.dat', np.column_stack((grid, v2)), fmt=('%5.10f'), header='x\tV = 0.5x**2 + 0.1x**3 + 0.01x**4')
     return v1, v2
 
 def polynomial(nord: int, xgrid: npt.NDArray, **kwargs) -> Tuple[npt.NDArray, npt.NDArray, int, float]:
@@ -243,7 +243,7 @@ def calculate_TCF(npot, range_E, beta, grid, test=False):
     if test == True: # generate potentials from 2004 paper and calculate TCF
         print("Using potentials calculated with potential_2004")
         directory = 'potential/2004/'
-        v1, v2 = potential_2004(grid) # Save Manolopolous (2004) potentials to files and returns them
+        grid, v1 = np.loadtxt(f'{directory}potential_1.dat', unpack=True)
         # v1 =  1/4 x^4
         plt.plot(grid, v1)
         plt.savefig(f'{directory}potential_1.png')
@@ -257,6 +257,7 @@ def calculate_TCF(npot, range_E, beta, grid, test=False):
         plt.savefig(f'{directory}Kubo_1.png')
         plt.close()
 
+        grid, v2 = np.loadtxt(f'{directory}potential_2.dat', unpack=True)
         # v2 =  1/2x^2 + 0.1x^3 + 0.01c^4
         plt.plot(grid, v2)
         plt.savefig(f'{directory}potential_2.png')
@@ -332,6 +333,6 @@ v_min = 5
 v_max = 100000
 
 # if test= True - Manolopolous (2004), False == random potentials
-calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=False)
+calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=True)
 
 
