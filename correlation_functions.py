@@ -1,16 +1,46 @@
 # goal - code to calculate 1D correlation functions for given potentials, using classical MD
 
 import numpy as np
-import numpy.typing as npt
 import matplotlib.pyplot as plt
+from sympy import *
 
 # Classical MD functions
-# energy and force for harmonic oscillator
+# Regen potential & obtain energy & force expressions
+def potential():
+    # regenerates expression from potential data file
+    # returns python lambda expressions for energy (V(x)) and force (F(x)) to be used in individual calculations (see potential_energy_force for actual use in MD)
+    coeffs_array = np.loadtxt('output/potential/dat/potential_0_data.dat')
 
-def harmonic_energy_force(x,k):
-    energy = 0.5*k*x**2
-    force = -k*x # -ve derivative of energy
+    order = int(coeffs_array[-1])
+    coeffs = coeffs_array[:-1]
+    v = ''
+    expr = ''
+    for i in range(len(coeffs)):
+        for j in range(0,order):
+            if i == j:
+                expr += v.join(f'{coeffs[i]}*x**{j+1} + ')
+    expr = expr[:-3]
+    V = sympify(expr)
 
+    x = symbols('x')
+    F = -diff(V,x)
+
+    lam_e = lambdify(x, V, modules=['numpy'])
+    lam_f = lambdify(x, F, modules=['numpy'])
+
+    # plotting code to check
+    # plt.plot(grid,energy)
+    # plt.plot(grid, force)
+    # plt.savefig('potential_energy_force.png')
+
+    return lam_e, lam_f
+
+def potential_energy_force(x):
+    lam_e, lam_f = potential()
+    energy = lam_e(x)
+    force = lam_f(x)
+
+    # returns expressions of energy and force based on potential()
     return energy, force
 
 # velocity verlet functions
@@ -24,7 +54,7 @@ def update_velocity(v,F_new,F_old,dt,m):
     return v_new
 
 # TODO - change function so it only does one timestep
-def velocity_verlet(potential, max_time, dt, initial_position, initial_velocity, m, save_frequency=1):
+def velocity_verlet(potential_e_f, max_time, dt, initial_position, initial_velocity, m, save_frequency=1):
     x = initial_position
     v = initial_velocity # p = mv
     t = 0
@@ -36,7 +66,7 @@ def velocity_verlet(potential, max_time, dt, initial_position, initial_velocity,
     save_times = []
     
     while(t<max_time):
-        potential_energy, force = potential(x,k)
+        potential_energy, force = potential_e_f(x)
         if step_number%save_frequency == 0:
             e_total = 0.5*v*v + potential_energy
 
@@ -46,7 +76,7 @@ def velocity_verlet(potential, max_time, dt, initial_position, initial_velocity,
             save_times.append(t)
         
         x = update_position(x,v,force,dt,m)
-        potential_energy2, force2 = potential(x,k)
+        potential_energy2, force2 = potential_e_f(x)
         v = update_velocity(v,force2,force,dt,m)
                 
         t = t+dt
@@ -61,6 +91,8 @@ def position_auto_correlation_function():
     for t in range(len(times)):
         cf_t = positions[0] * positions[t]
         correlation_function.append(cf_t)
+
+    print(correlation_function)
     return correlation_function
 
 # TODO - loop over a number of traj for harmonic oscillator
@@ -84,8 +116,8 @@ def position_auto_correlation_function():
 k = 1
 m = 1
 
-initial_energy = 2
-initial_position = 0.1
+initial_energy = 1
+initial_position = 0.5
 initial_velocity = 1
 
 dt = 0.1
@@ -93,13 +125,10 @@ max_time = 20
 
 # After equilibration period, run constant-energy simulation to accumulate the correlation function, which is repeated for lots of initial conditions
 # loop for nt timesteps after VV func changed
-times, positions, velocities, total_energies = velocity_verlet(harmonic_energy_force, max_time, dt, initial_position, initial_velocity, m)
+times, positions, velocities, total_energies = velocity_verlet(potential_energy_force, max_time, dt, initial_position, initial_velocity, m)
 
 # loop over time values and calculate the correlation function
 C_t = position_auto_correlation_function() # C_t is array containing correlation function
-print(C_t)
 
 plt.plot(times,C_t)
-plt.plot(times,positions)
-plt.plot(times,total_energies)
-plt.savefig('file.png')
+plt.savefig(f'calc_Kubo_0.png')
