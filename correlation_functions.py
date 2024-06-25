@@ -92,7 +92,6 @@ def position_auto_correlation_function():
         cf_t = positions[0] * positions[t]
         correlation_function.append(cf_t)
 
-    print(correlation_function)
     return correlation_function
 
 # TODO - loop over a number of traj for harmonic oscillator
