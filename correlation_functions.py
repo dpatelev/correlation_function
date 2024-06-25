@@ -36,98 +36,134 @@ def potential():
     return lam_e, lam_f
 
 def potential_energy_force(x):
-    lam_e, lam_f = potential()
-    energy = lam_e(x)
-    force = lam_f(x)
-
     # returns expressions of energy and force based on potential()
+    # lam_e, lam_f = potential()
+    # energy = lam_e(x)
+    # force = lam_f(x)
+
+    # V(x) = 0.25x**4
+    energy = 0.25 * x **4
+    force = -x**3
     return energy, force
 
-# velocity verlet functions
+# sample velocity
+def sample(beta, m):
+    sigma = np.sqrt(1/(beta*m))
+    v = np.random.normal(0,sigma)
+    return v
 
-def update_position(x,v,F,dt,m):
-    x_new = x + v*dt + 0.5*m*F*dt*dt
+# velocity verlet functions
+# functions to update position and velocity of particle for 1 timestep
+def upd_pos(x,v,m,dt,f):
+    x_new = x + v*dt + 0.5 * m * f * dt**2
     return x_new
 
-def update_velocity(v,F_new,F_old,dt,m):
-    v_new = v + 0.5*m*(F_old+F_new)*dt
+def upd_vel(v,m,dt,f,f_new):
+    v_new = v + 0.5* m * (f + f_new) * dt
     return v_new
 
-# TODO - change function so it only does one timestep
-def velocity_verlet(potential_e_f, max_time, dt, initial_position, initial_velocity, m, save_frequency=1):
-    x = initial_position
-    v = initial_velocity # p = mv
-    t = 0
+# velocity verlet for 1 timestep
+def velocity_verlet_1(x_init, v_init, m, dt):
+    # initial position and velocity
+    x = x_init
+    v = v_init
+    # initial forces on the particle
+    energy, force = potential_energy_force(x)
+    total_energy = energy + 0.5 * m * v * v
+    # update position
+    x = upd_pos(x,v,m,dt,force)
+    # new forces from new position
+    energy_new, force_new = potential_energy_force(x)
+    # update velocity
+    v = upd_vel(v,m,dt,force, force_new)
+
+    return x,v, total_energy
+
+# main velocity verlet function - boolean for thermostat (True for equilibration, False for dynamics)
+# equilibration time and dynamics time - 2 different max times
+def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau):
+    beta = beta
     m = m
-    step_number = 0
+    num = int(max_time/dt)
+    # timesteps
+    times = np.linspace(0,max_time,num)
+    dy_times = np.linspace(eq_time,max_time,int((max_time-eq_time)/dt))
     positions = []
     velocities = []
-    total_energies = []
-    save_times = []
-    
-    while(t<max_time):
-        potential_energy, force = potential_e_f(x)
-        if step_number%save_frequency == 0:
-            e_total = 0.5*v*v + potential_energy
+    energies = []
 
+    # initial position and velocity
+    x = x_init
+    v = sample(beta,m)
+
+    # loop over timesteps
+    t = 0
+    for t in times:
+        if t<eq_time:
+            x,v, e_tot = velocity_verlet_1(x,v,m,dt)
+            velocities.append(v)
+            energies.append(e_tot)
+            # thermostat on
+            i = np.random.rand()
+            if i <= tau:
+                v = sample(beta,m)
+            t = t + dt
+        elif t>=eq_time: # dynamics - accumulate positions
+            x,v, e_tot = velocity_verlet_1(x,v,m,dt)
             positions.append(x)
             velocities.append(v)
-            total_energies.append(e_total)
-            save_times.append(t)
-        
-        x = update_position(x,v,force,dt,m)
-        potential_energy2, force2 = potential_e_f(x)
-        v = update_velocity(v,force2,force,dt,m)
-                
-        t = t+dt
-        step_number = step_number + 1
-    
-    return save_times, positions, velocities, total_energies
+            energies.append(e_tot)
+            t = t+dt
+
+
+    return times, dy_times, positions, velocities, energies
 
 # calculating position auto correlation function for 1 trajectory
 def position_auto_correlation_function():
     correlation_function = []
 
-    for t in range(len(times)):
+    for t in range(len(dy_times)):
         cf_t = positions[0] * positions[t]
         correlation_function.append(cf_t)
 
     return correlation_function
 
-# TODO - loop over a number of traj for harmonic oscillator
+# TODO - loop over a number of trajectories
+# DONE - for each traj generate initial conditions and run
+    # DONE - generate initial conditions from constant temperature ensemble
+    # DONE - Run initial MD trajectory with a thermostat (Anderson) attached
+        # DONE - Sample initial velocity of particle
+        # DONE - Equilibrate for set number of timesteps - Andersen thermostat
+        # DONE Resample initial velocities
 
-# TODO - for each traj generate intial conditions and run
-# TODO - MD timestep - function for ONLY ONE TIMESTEP, and lopp for required timesteps
-    # TODO - generate initial conditions from constant temperature ensemble
-    # Run initial MD trajectory with a thermostat (Andersen) attached
-        # Sample initial velocity/momenta of particle
-        # Calculate initial forces on particle
-        # Equilibrate for set number of timesteps - Andersen thermostat
-        # Resample initial velocities/momenta
 
     # Run MD trajectory and get position
     # Accumulate correlation function
     # Average correlation function - divide by no of trajectories
 
-# TODO - calculate overall ensemble average - average over lots of diff trajectories 
+# TODO - calculate overall ensemble average - average over lots of diff trajectories
 
-# initialise variables
-k = 1
-m = 1
+# equilibrate with Anderson thermostat attached
+beta = 1
+x_init = 0
+mass = 1
+max_time = 80
+eq_time = max_time / 2
+dt = 0.01
+tau = 0.005
 
-initial_energy = 1
-initial_position = 0.5
-initial_velocity = 1
+times, dy_times, positions, velocities, energies = velocity_verlet(beta, x_init, mass, eq_time, max_time, dt, tau)
 
-dt = 0.1
-max_time = 20
+# plotting
+plt.plot(times, energies, label="Energy")
+plt.legend()
+plt.savefig('energy.png')
+plt.close()
 
-# After equilibration period, run constant-energy simulation to accumulate the correlation function, which is repeated for lots of initial conditions
-# loop for nt timesteps after VV func changed
-times, positions, velocities, total_energies = velocity_verlet(potential_energy_force, max_time, dt, initial_position, initial_velocity, m)
-
-# loop over time values and calculate the correlation function
+# accumulate the correlation function
 C_t = position_auto_correlation_function() # C_t is array containing correlation function
 
-plt.plot(times,C_t)
-plt.savefig(f'calc_Kubo_0.png')
+plt.plot(dy_times, C_t, label="TCF")
+plt.legend()
+plt.savefig('TCF.png')
+plt.close()
