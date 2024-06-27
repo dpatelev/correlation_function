@@ -9,7 +9,7 @@ from sympy import *
 def potential():
     # regenerates expression from potential data file
     # returns python lambda expressions for energy (V(x)) and force (F(x)) to be used in individual calculations (see potential_energy_force for actual use in MD)
-    coeffs_array = np.loadtxt('output/potential/dat/potential_0_data.dat')
+    coeffs_array = np.loadtxt('output/potential/dat/potential_8_data.dat')
 
     order = int(coeffs_array[-1])
     coeffs = coeffs_array[:-1]
@@ -35,15 +35,10 @@ def potential():
 
     return lam_e, lam_f
 
-def potential_energy_force(x):
+def potential_energy_force(x, lam_e, lam_f):
     # returns expressions of energy and force based on potential()
-    # lam_e, lam_f = potential()
-    # energy = lam_e(x)
-    # force = lam_f(x)
-
-    # V(x) = 0.25x**4
-    energy = 0.25 * x **4
-    force = -x**3
+    energy = lam_e(x)
+    force = lam_f(x)
     return energy, force
 
 # sample velocity
@@ -63,17 +58,19 @@ def upd_vel(v,m,dt,f,f_new):
     return v_new
 
 # velocity verlet for 1 timestep
-def velocity_verlet_1(x_init, v_init, m, dt):
+def velocity_verlet_1(x_init, v_init, m, dt, lam_e, lam_f):
     # initial position and velocity
     x = x_init
     v = v_init
     # initial forces on the particle
-    energy, force = potential_energy_force(x)
+    lam_e = lam_e
+    lam_f = lam_f
+    energy, force = potential_energy_force(x, lam_e, lam_f)
     total_energy = energy + 0.5 * m * v * v
     # update position
     x = upd_pos(x,v,m,dt,force)
     # new forces from new position
-    energy_new, force_new = potential_energy_force(x)
+    energy_new, force_new = potential_energy_force(x, lam_e, lam_f)
     # update velocity
     v = upd_vel(v,m,dt,force, force_new)
 
@@ -81,7 +78,10 @@ def velocity_verlet_1(x_init, v_init, m, dt):
 
 # main velocity verlet function - boolean for thermostat (True for equilibration, False for dynamics)
 # equilibration time and dynamics time - 2 different max times
-def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau):
+def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau, lam_e, lam_f):
+    # lambda energy and forces
+    lam_e = lam_e
+    lam_f = lam_f
     beta = beta
     m = m
     num = int(max_time/dt)
@@ -100,7 +100,7 @@ def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau):
     t = 0
     for t in times:
         if t<eq_time:
-            x,v, e_tot = velocity_verlet_1(x,v,m,dt)
+            x,v, e_tot = velocity_verlet_1(x,v,m,dt, lam_e, lam_f)
             velocities.append(v)
             energies.append(e_tot)
             # thermostat on
@@ -109,7 +109,7 @@ def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau):
                 v = sample(beta,m)
             t = t + dt
         elif t>=eq_time: # dynamics - accumulate positions
-            x,v, e_tot = velocity_verlet_1(x,v,m,dt)
+            x,v, e_tot = velocity_verlet_1(x,v,m,dt, lam_e, lam_f)
             positions.append(x)
             velocities.append(v)
             energies.append(e_tot)
@@ -119,7 +119,7 @@ def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau):
     return times, dy_times, positions, velocities, energies
 
 # calculating position auto correlation function for 1 trajectory
-def position_auto_correlation_function():
+def position_auto_correlation_function(dy_times, positions):
     correlation_function = []
 
     for t in range(len(dy_times)):
@@ -128,7 +128,7 @@ def position_auto_correlation_function():
 
     return correlation_function
 
-# TODO - loop over a number of trajectories
+# DONE - loop over a number of trajectories
 # DONE - for each traj generate initial conditions and run
     # DONE - generate initial conditions from constant temperature ensemble
     # DONE - Run initial MD trajectory with a thermostat (Anderson) attached
@@ -141,29 +141,53 @@ def position_auto_correlation_function():
     # Accumulate correlation function
     # Average correlation function - divide by no of trajectories
 
-# TODO - calculate overall ensemble average - average over lots of diff trajectories
+# DONE - calculate overall ensemble average - average over lots of diff trajectories
 
-# equilibrate with Anderson thermostat attached
-beta = 1
-x_init = 0
-mass = 1
-max_time = 80
-eq_time = max_time / 2
-dt = 0.01
-tau = 0.005
+def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f):
+    num_traj = num_traj
+    beta = beta
+    x_init = x_init
+    mass = mass
+    max_time = max_time
+    eq_time = eq_time
+    dt = dt
+    tau = tau
 
-times, dy_times, positions, velocities, energies = velocity_verlet(beta, x_init, mass, eq_time, max_time, dt, tau)
+    t = np.linspace(eq_time,max_time,int((max_time-eq_time)/dt))
+    lam_e = lam_e
+    lam_f = lam_f
 
-# plotting
-plt.plot(times, energies, label="Energy")
-plt.legend()
-plt.savefig('energy.png')
-plt.close()
+    Ct_all = np.ndarray(len(t))
+    for i in range(num_traj):
+        print(f'Trajectory {i}')
+        times, dy_times, positions, velocities, energies = velocity_verlet(beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
+        C_t = position_auto_correlation_function(dy_times, positions)
+        for j in range(len(Ct_all)):
+            Ct_all[j] += C_t[j]
+    for i in range(len(Ct_all)):
+        Ct_all[i] = Ct_all[i] / num_traj
+    
+    # setting dy_times to start from 0 for plotting purposes
+    dy_times = dy_times - eq_time
+    return Ct_all, dy_times
 
-# accumulate the correlation function
-C_t = position_auto_correlation_function() # C_t is array containing correlation function
+def main():
+    num_traj = 5000
+    beta = 1
+    x_init = 0
+    mass = 1
+    max_time = 40
+    eq_time = max_time / 2
+    dt = 0.1
+    tau = 0.005
+    lam_e, lam_f = potential()
 
-plt.plot(dy_times, C_t, label="TCF")
-plt.legend()
-plt.savefig('TCF.png')
-plt.close()
+    Ct_all, dy_times = ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
+    # plotting single TCF
+    plt.plot(dy_times, Ct_all, label="TCF")
+    plt.legend()
+    plt.savefig('calculated_TCF.png')
+    plt.close()
+
+if __name__ == "__main__":
+    main()
