@@ -1,5 +1,5 @@
 # goal - code to calculate 1D correlation functions for given potentials, using classical MD
-
+# TODO - what is the bare minimum (i.e. no plots) for program synthesis?
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import *
@@ -7,6 +7,8 @@ from sympy import *
 # Classical MD functions
 # Regen potential & obtain energy & force expressions
 def potential():
+    # TODO - modify to allow read in of potential data file
+
     # regenerates expression from potential data file
     # returns python lambda expressions for energy (V(x)) and force (F(x)) to be used in individual calculations (see potential_energy_force for actual use in MD)
     coeffs_array = np.loadtxt('output/potential/dat/potential_8_data.dat')
@@ -27,11 +29,6 @@ def potential():
 
     lam_e = lambdify(x, V, modules=['numpy'])
     lam_f = lambdify(x, F, modules=['numpy'])
-
-    # plotting code to check
-    # plt.plot(grid,energy)
-    # plt.plot(grid, force)
-    # plt.savefig('potential_energy_force.png')
 
     return lam_e, lam_f
 
@@ -76,7 +73,7 @@ def velocity_verlet_1(x_init, v_init, m, dt, lam_e, lam_f):
 
     return x,v, total_energy
 
-# main velocity verlet function - boolean for thermostat (True for equilibration, False for dynamics)
+# main MD function
 # equilibration time and dynamics time - 2 different max times
 def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau, lam_e, lam_f):
     # lambda energy and forces
@@ -99,7 +96,7 @@ def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau, lam_e, lam_f):
     # loop over timesteps
     t = 0
     for t in times:
-        if t<eq_time:
+        if t<eq_time: # equilibration
             x,v, e_tot = velocity_verlet_1(x,v,m,dt, lam_e, lam_f)
             velocities.append(v)
             energies.append(e_tot)
@@ -115,7 +112,6 @@ def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau, lam_e, lam_f):
             energies.append(e_tot)
             t = t+dt
 
-
     return times, dy_times, positions, velocities, energies
 
 # calculating position auto correlation function for 1 trajectory
@@ -127,21 +123,6 @@ def position_auto_correlation_function(dy_times, positions):
         correlation_function.append(cf_t)
 
     return correlation_function
-
-# DONE - loop over a number of trajectories
-# DONE - for each traj generate initial conditions and run
-    # DONE - generate initial conditions from constant temperature ensemble
-    # DONE - Run initial MD trajectory with a thermostat (Anderson) attached
-        # DONE - Sample initial velocity of particle
-        # DONE - Equilibrate for set number of timesteps - Andersen thermostat
-        # DONE Resample initial velocities
-
-
-    # Run MD trajectory and get position
-    # Accumulate correlation function
-    # Average correlation function - divide by no of trajectories
-
-# DONE - calculate overall ensemble average - average over lots of diff trajectories
 
 def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f):
     num_traj = num_traj
@@ -172,6 +153,7 @@ def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e,
     return Ct_all, dy_times
 
 def main():
+    # TODO - read from input file - including potential data file location?
     num_traj = 5000
     beta = 1
     x_init = 0
