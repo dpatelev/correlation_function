@@ -1,0 +1,8 @@
+num_traj: 5000
+beta: 1
+x_init: 0
+mass: 1
+max_time: 40
+dt: 0.1
+tau: 0.005
+directory: 'output/potential/dat/'

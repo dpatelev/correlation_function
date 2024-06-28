@@ -6,6 +6,7 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import *
+import yaml
 
 # Classical MD functions
 # Regen potential & obtain energy & force expressions
@@ -153,26 +154,29 @@ def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e,
     return Ct_all, dy_times
 
 def main():
-    # TODO - read from input file - including potential data file location?
+    with open('traj_input.yaml', 'r') as file:
+        data = yaml.safe_load(file)
+    items = list(data.items())
 
-    directory = 'output/potential/dat/'
+    num_traj = items[0][1]
+    beta = items[1][1]
+    x_init = items[2][1]
+    mass = items[3][1]
+    max_time = items[4][1]
+    dt = items[5][1]
+    tau = items[6][1]
+    directory = items[7][1]
+    eq_time = max_time / 2
+    
     fileCounter = len(glob.glob1(directory, '*_data.dat'))
-    print(fileCounter)
+    print(f'Running {num_traj} trajectories for {fileCounter} potential(s)')
     for i in range(fileCounter):
         filepath = f'{directory}potential_{i}_data.dat'
         lam_e, lam_f = potential(filepath)
-        num_traj = 5000
-        beta = 1
-        x_init = 0
-        mass = 1
-        max_time = 40
-        eq_time = max_time / 2
-        dt = 0.1
-        tau = 0.005
         print(f'Running MD trajectories for potential {i}......')
         Ct_all, dy_times = ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
         print(f'Saving calculated Kubo TCF {i} to file')
-        # plotting single TCF
+
         dir_png = 'output/MD/png/'
         dir_dat = 'output/MD/dat/'
         dir = [dir_png, dir_dat]
