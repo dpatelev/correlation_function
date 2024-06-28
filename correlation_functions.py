@@ -1,17 +1,18 @@
 # goal - code to calculate 1D correlation functions for given potentials, using classical MD
 # TODO - what is the bare minimum (i.e. no plots) for program synthesis?
+
+import os
+import glob
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import *
 
 # Classical MD functions
 # Regen potential & obtain energy & force expressions
-def potential():
-    # TODO - modify to allow read in of potential data file
-
+def potential(filepath):
     # regenerates expression from potential data file
     # returns python lambda expressions for energy (V(x)) and force (F(x)) to be used in individual calculations (see potential_energy_force for actual use in MD)
-    coeffs_array = np.loadtxt('output/potential/dat/potential_8_data.dat')
+    coeffs_array = np.loadtxt(filepath)
 
     order = int(coeffs_array[-1])
     coeffs = coeffs_array[:-1]
@@ -138,9 +139,8 @@ def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e,
     lam_e = lam_e
     lam_f = lam_f
 
-    Ct_all = np.ndarray(len(t))
+    Ct_all = np.zeros(len(t))
     for i in range(num_traj):
-        print(f'Trajectory {i}')
         times, dy_times, positions, velocities, energies = velocity_verlet(beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
         C_t = position_auto_correlation_function(dy_times, positions)
         for j in range(len(Ct_all)):
@@ -154,22 +154,37 @@ def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e,
 
 def main():
     # TODO - read from input file - including potential data file location?
-    num_traj = 5000
-    beta = 1
-    x_init = 0
-    mass = 1
-    max_time = 40
-    eq_time = max_time / 2
-    dt = 0.1
-    tau = 0.005
-    lam_e, lam_f = potential()
 
-    Ct_all, dy_times = ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
-    # plotting single TCF
-    plt.plot(dy_times, Ct_all, label="TCF")
-    plt.legend()
-    plt.savefig('calculated_TCF.png')
-    plt.close()
+    directory = 'output/potential/dat/'
+    fileCounter = len(glob.glob1(directory, '*_data.dat'))
+    print(fileCounter)
+    for i in range(fileCounter):
+        filepath = f'{directory}potential_{i}_data.dat'
+        lam_e, lam_f = potential(filepath)
+        num_traj = 5000
+        beta = 1
+        x_init = 0
+        mass = 1
+        max_time = 40
+        eq_time = max_time / 2
+        dt = 0.1
+        tau = 0.005
+        print(f'Running MD trajectories for potential {i}......')
+        Ct_all, dy_times = ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
+        print(f'Saving calculated Kubo TCF {i} to file')
+        # plotting single TCF
+        dir_png = 'output/MD/png/'
+        dir_dat = 'output/MD/dat/'
+        dir = [dir_png, dir_dat]
+        for d in dir:
+            if not os.path.exists(d):
+                os.makedirs(d)
+        plt.plot(dy_times, Ct_all)
+        plt.savefig(f'{dir_png}calc_Kubo_{i}.png')
+        plt.close()
+
+        np.savetxt(f'{dir_dat}calc_Kubo_{i}.dat', np.column_stack((dy_times,Ct_all)), fmt=('%5.2f', '%5.10f'),header='t\tC(t)')
+    print('Complete!')
 
 if __name__ == "__main__":
     main()
