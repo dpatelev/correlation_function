@@ -1,5 +1,7 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
+# TODO - generate data file for Manolopolous (2004) potentials so the code can be refactored to work the same way, and to allow for correlation_functions.py to be run on those potentials
+
 import sys, os
 import numpy as np
 import numpy.typing as npt
@@ -244,7 +246,7 @@ def calculate_TCF(npot, range_E, beta, grid, test=False):
         print("Using potentials calculated with potential_2004")
         directory = 'potential/2004/'
         grid, v1 = np.loadtxt(f'{directory}potential_1.dat', unpack=True)
-        # v1 =  1/4 x^4
+        # v1 =  1/4 x^4 (0 x - x3)
         plt.plot(grid, v1)
         plt.savefig(f'{directory}potential_1.png')
         plt.close()
@@ -258,7 +260,7 @@ def calculate_TCF(npot, range_E, beta, grid, test=False):
         plt.close()
 
         grid, v2 = np.loadtxt(f'{directory}potential_2.dat', unpack=True)
-        # v2 =  1/2x^2 + 0.1x^3 + 0.01c^4
+        # v2 =  0x + 1/2x^2 + 0.1x^3 + 0.01x^4
         plt.plot(grid, v2)
         plt.savefig(f'{directory}potential_2.png')
         plt.close()
@@ -326,13 +328,15 @@ t = np.arange(0,max_time, dt)
 
 # generate random potentials
 npot = 10
-nord = 6
+nord = 5 # order 6 causes overflow error when running MD trajectories
 coeff_min = -5
 coeff_max = 5
 v_min = 5
 v_max = 100000
 
-# if test= True - Manolopolous (2004), False == random potentials
-calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=True)
+def main():
+    calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=False)
+    calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=True)
 
-
+if __name__ == "__main__":
+    main()
