@@ -1,5 +1,6 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
+# TODO - input.yaml file and main function
 # TODO - generate data file for Manolopolous (2004) potentials so the code can be refactored to work the same way, and to allow for correlation_functions.py to be run on those potentials
 
 import sys, os
@@ -335,7 +336,7 @@ v_min = 5
 v_max = 100000
 
 def main():
-    calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=False)
+    # calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=False)
     calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=True)
 
 if __name__ == "__main__":
