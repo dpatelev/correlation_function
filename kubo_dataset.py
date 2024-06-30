@@ -41,14 +41,17 @@ def potential_2004(grid: npt.NDArray):
         grid[:]: provided grid.
     """
 
-    directory = 'potential/2004/'
+    directory = '2004/potential/dat/'
     if not os.path.exists(directory):
         os.makedirs(directory)
     v1 = 0.25 * grid**4 # Manolopoulos (2004)
-    np.savetxt(f'{directory}potential_1.dat', np.column_stack((grid, v1)), fmt=('%5.10f'), header='x\tV = 0.25x**4')
-
+    np.savetxt(f'{directory}potential_0.dat', np.column_stack((grid, v1)), fmt=('%5.10f'), header='x\tV = 0.25x**4')
+    coeffs = [0,0,0,0.25]
+    np.savetxt(f'{directory}potential_0_data.dat', np.hstack((coeffs,4.0)), fmt=('%5.10f'))
     v2 = 0.5*(grid**2) + 0.1*(grid**3) + 0.01*(grid**4) # Manolopoulos (2004)
-    np.savetxt(f'{directory}potential_2.dat', np.column_stack((grid, v2)), fmt=('%5.10f'), header='x\tV = 0.5x**2 + 0.1x**3 + 0.01x**4')
+    np.savetxt(f'{directory}potential_1.dat', np.column_stack((grid, v2)), fmt=('%5.10f'), header='x\tV = 0.5x**2 + 0.1x**3 + 0.01x**4')
+    coeffs = [0,0.5,0.1,0.01]
+    np.savetxt(f'{directory}potential_1_data.dat', np.hstack((coeffs,4.0)), fmt=('%5.10f'))
     return v1, v2
 
 def polynomial(nord: int, xgrid: npt.NDArray, **kwargs) -> Tuple[npt.NDArray, npt.NDArray, int, float]:
@@ -241,76 +244,83 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     C = C.real 
     return C
 
-def calculate_TCF(npot, range_E, beta, grid, test=False):
+def calculate_TCF_2004(range_E, beta):
+    print("Using potentials calculated with potential_2004")
+    dat_dir = '2004/potential/dat/'
+    png_dir = '2004/potential/png/'
+    kdat_dir = '2004/Kubo/dat/'
+    kpng_dir = '2004/Kubo/png/'
+    dirs = [dat_dir, png_dir, kdat_dir, kpng_dir]
+    for d in dirs:
+        if not os.path.exists(d):
+            os.makedirs(d)
+    
+    grid, v1 = np.loadtxt(f'{dat_dir}potential_0.dat', unpack=True)
+    # v1 =  1/4 x^4 (0 x - x3)
+    plt.plot(grid, v1)
+    plt.savefig(f'{png_dir}potential_0.png')
+    plt.close()
+    c, E, H = colbert_miller_DVR(grid_size, grid, m, v1)
+    range_E = range_E
+    C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
+    data = np.column_stack((t,C))
+    np.savetxt(f'{kdat_dir}Kubo_0.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+    plt.plot(t, C)
+    plt.savefig(f'{kpng_dir}Kubo_0.png')
+    plt.close()
 
-    if test == True: # generate potentials from 2004 paper and calculate TCF
-        print("Using potentials calculated with potential_2004")
-        directory = 'potential/2004/'
-        grid, v1 = np.loadtxt(f'{directory}potential_1.dat', unpack=True)
-        # v1 =  1/4 x^4 (0 x - x3)
-        plt.plot(grid, v1)
-        plt.savefig(f'{directory}potential_1.png')
-        plt.close()
-        c, E, H = colbert_miller_DVR(grid_size, grid, m, v1)
-        range_E = range_E
-        C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
-        data = np.column_stack((t,C))
-        np.savetxt(f'{directory}Kubo_1.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
-        plt.plot(t, C)
-        plt.savefig(f'{directory}Kubo_1.png')
-        plt.close()
+    grid, v2 = np.loadtxt(f'{dat_dir}potential_1.dat', unpack=True)
+    # v2 =  0x + 1/2x^2 + 0.1x^3 + 0.01x^4
+    plt.plot(grid, v2)
+    plt.savefig(f'{png_dir}potential_1.png')
+    plt.close()
+    c, E, H = colbert_miller_DVR(grid_size, grid, m, v2)
+    range_E = range_E
+    C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
+    data = np.column_stack((t,C))
+    np.savetxt(f'{kdat_dir}Kubo_1.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+    plt.plot(t, C)
+    plt.savefig(f'{kpng_dir}Kubo_1.png')
+    plt.close()
 
-        grid, v2 = np.loadtxt(f'{directory}potential_2.dat', unpack=True)
-        # v2 =  0x + 1/2x^2 + 0.1x^3 + 0.01x^4
-        plt.plot(grid, v2)
-        plt.savefig(f'{directory}potential_2.png')
-        plt.close()
-        c, E, H = colbert_miller_DVR(grid_size, grid, m, v2)
-        range_E = range_E
-        C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
-        data = np.column_stack((t,C))
-        np.savetxt(f'{directory}Kubo_2.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
-        plt.plot(t, C)
-        plt.savefig(f'{directory}Kubo_2.png')
-        plt.close()
-    else:
-        random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
+def calculate_TCF(npot, range_E, beta, grid):
+    random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
 
-        dat = 'output/potential/dat/'
-        kubo_dat = 'output/Kubo/dat/'
-        pot_png = 'output/potential/png/'
-        kubo_png = 'output/Kubo/png/'
+    dat = 'output/potential/dat/'
+    kubo_dat = 'output/Kubo/dat/'
+    pot_png = 'output/potential/png/'
+    kubo_png = 'output/Kubo/png/'
 
-        directory = [dat, kubo_dat, kubo_png, pot_png]
-        for d in directory:
-            if not os.path.exists(d):
-                os.makedirs(d)
+    directory = [dat, kubo_dat, kubo_png, pot_png]
+    for d in directory:
+        if not os.path.exists(d):
+            os.makedirs(d)
 
-        for i in range(npot):
-            print(f'Loading potential_{i}...')
-            grid, v = np.loadtxt(f'{dat}potential_{i}.dat', unpack=True)
+    for i in range(npot):
+        print(f'Loading potential_{i}...')
+        grid, v = np.loadtxt(f'{dat}potential_{i}.dat', unpack=True)
             
-            plt.plot(grid, v)
-            plt.xlabel("Position")
-            plt.ylabel("V(x)")
-            plt.savefig(f'{pot_png}potential_{i}.png')
-            plt.close()
+        plt.plot(grid, v)
+        plt.xlabel("Position")
+        plt.ylabel("V(x)")
+        plt.savefig(f'{pot_png}potential_{i}.png')
+        plt.close()
 
-            # returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
-            c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
+        # returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
+        c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 
-            # set range of eigenvalues to use when calculating TCF - can use all (set to len(E))!
-            range_E = range_E
-            C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
-            # save Kubo TCF data to file - also potential data to file
-            data = np.column_stack((t,C))
-            np.savetxt(f'{kubo_dat}Kubo_{i}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
-            plt.plot(t, C)
-            plt.xlabel("Time")
-            plt.ylabel("Kubo TCF")
-            plt.savefig(f'{kubo_png}Kubo_{i}.png')
-            plt.close()
-            print(f'Saved to {kubo_png}Kubo_{i}.png')
+        # set range of eigenvalues to use when calculating TCF - can use all (set to len(E))!
+        range_E = range_E
+        C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
+        # save Kubo TCF data to file - also potential data to file
+        data = np.column_stack((t,C))
+        np.savetxt(f'{kubo_dat}Kubo_{i}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+        plt.plot(t, C)
+        plt.xlabel("Time")
+        plt.ylabel("Kubo TCF")
+        plt.savefig(f'{kubo_png}Kubo_{i}.png')
+        plt.close()
+        print(f'Saved to {kubo_png}Kubo_{i}.png')
 
 # generate grid
 x_min = -10
@@ -336,8 +346,9 @@ v_min = 5
 v_max = 100000
 
 def main():
-    # calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=False)
-    calculate_TCF(npot,range_E=10, beta=1, grid=grid,test=True)
+    potential_2004(grid)
+    calculate_TCF_2004(range_E = 10, beta=1)
+    calculate_TCF(npot,range_E=10, beta=1, grid=grid)
 
 if __name__ == "__main__":
     main()
