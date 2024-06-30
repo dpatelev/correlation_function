@@ -167,20 +167,20 @@ def main():
     tau = items[6][1]
     directory = items[7][1]
     eq_time = max_time / 2
-    
-    fileCounter = len(glob.glob1(directory, '*_data.dat'))
+    dir = f'{directory}/potential/dat/'
+    fileCounter = len(glob.glob1(dir, '*_data.dat'))
     print(f'Running {num_traj} trajectories for {fileCounter} potential(s)')
     for i in range(fileCounter):
-        filepath = f'{directory}potential_{i}_data.dat'
+        filepath = f'{dir}potential_{i}_data.dat'
         lam_e, lam_f = potential(filepath)
         print(f'Running MD trajectories for potential {i}......')
         Ct_all, dy_times = ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
         print(f'Saving calculated Kubo TCF {i} to file')
 
-        dir_png = 'output/MD/png/'
-        dir_dat = 'output/MD/dat/'
-        dir = [dir_png, dir_dat]
-        for d in dir:
+        dir_png = f'{directory}/MD/png/'
+        dir_dat = f'{directory}/MD/dat/'
+        dirs = [dir_png, dir_dat]
+        for d in dirs:
             if not os.path.exists(d):
                 os.makedirs(d)
         plt.plot(dy_times, Ct_all)
