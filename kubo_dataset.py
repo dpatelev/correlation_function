@@ -1,12 +1,11 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
-# TODO - input.yaml file and main function
-
 import sys, os
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
 from typing import Tuple
+import yaml
 
 # generate 1D potentials - taken from https://github.com/ScottHabershon/PS/blob/main/src/potentials.py
 
@@ -189,7 +188,7 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
     #  Solve the eigenvalue problem using the linalg.eigh
     E, c = np.linalg.eigh(H)
-    if not sys.platform.startswith('darwin'): # not required for mac OS, # TODO 17.06 / 18.06 - check if the float requirement is really needed on Ubuntu
+    if not sys.platform.startswith('darwin'): # not required for mac OS
         E = E.astype('float128',copy=False)
 
     #  Normalize each eigenfunction using simple quadrature.
@@ -243,7 +242,7 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     C = C.real 
     return C
 
-def calculate_TCF_2004(grid, range_E, beta):
+def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
     print("Using potentials calculated with potential_2004")
     dat_dir = '2004/potential/dat/'
     png_dir = '2004/potential/png/'
@@ -282,7 +281,7 @@ def calculate_TCF_2004(grid, range_E, beta):
     plt.savefig(f'{kpng_dir}Kubo_1.png')
     plt.close()
 
-def calculate_TCF(npot, range_E, beta, grid):
+def calculate_TCF(npot, nord, coeff_min, coeff_max, v_min, v_max, range_E, beta, grid, grid_size, m, dx, t):
     random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
 
     dat = 'output/potential/dat/'
@@ -321,32 +320,36 @@ def calculate_TCF(npot, range_E, beta, grid):
         plt.close()
         print(f'Saved to {kubo_png}Kubo_{i}.png')
 
-# generate grid
-x_min = -10
-x_max = 10
-grid_size = 101
-
-grid, dx = get_exact_grid(x_min,x_max,grid_size)
-
-# initialise variables
-m = 1
-
-# set timesteps
-dt = 0.1
-max_time = 20
-t = np.arange(0,max_time, dt)
-
-# generate random potentials
-npot = 10
-nord = 5 # order 6 causes overflow error when running MD trajectories
-coeff_min = -5
-coeff_max = 5
-v_min = 5
-v_max = 100000
 
 def main():
-    calculate_TCF_2004(grid, range_E = 10, beta=1)
-    calculate_TCF(npot,range_E=10, beta=1, grid=grid)
+    with open('kubo_input.yaml', 'r') as file:
+        data = yaml.safe_load(file)
+    items = list(data.items())
+    
+    x_min = items[0][1]
+    x_max = items[1][1]
+    grid_size = items[2][1]
+    m = items[3][1]
+    dt = items[4][1]
+    max_time = items[5][1]
+    npot = items[6][1]
+    nord = items[7][1]
+    coeff_min = items[8][1]
+    coeff_max = items[9][1]
+    v_min = items[10][1]
+    v_max = items[11][1]
+    range_E = items[12][1]
+    beta = items[13][1]
+    test = items[14][1]
+
+    t = np.arange(0,max_time, dt)
+    grid, dx = get_exact_grid(x_min,x_max,grid_size)
+    if test == True:
+        calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t)
+        print("Generated Kubo TCF for Manolopolous (2004) potentials")
+    elif test == False:
+        calculate_TCF(npot, nord, coeff_min, coeff_max, v_min, v_max, range_E, beta, grid, grid_size, m, dx, t)
+        print(f"Generated {npot} random potentials and corresponding TCF")
 
 if __name__ == "__main__":
     main()
