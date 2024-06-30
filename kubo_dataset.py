@@ -1,35 +1,12 @@
 # Goal - to generate a dataset of exact Kubo TCF's for a variety of randomly generated BOUND potentials, to be used as training data to compare against classical MD results.
 
 # TODO - input.yaml file and main function
-# TODO - generate data file for Manolopolous (2004) potentials so the code can be refactored to work the same way, and to allow for correlation_functions.py to be run on those potentials
 
 import sys, os
 import numpy as np
 import numpy.typing as npt
 import matplotlib.pyplot as plt
 from typing import Tuple
-
-# CM-DVR functions
-# generate grids - https://github.com/ScottHabershon/PS/blob/main/src/grids.py
-
-def get_exact_grid(x_min: float, x_max: float, exact_grid_size: int) -> npt.NDArray:
-    """
-    Generates linearly space grid to be used in the exact solver.
-
-    :param x_min: minimum value of the grid
-    :type x_min: float
-    :param x_max: maximium value of the grid
-    :type x_max: float
-    :param exact_grid_size: size of the grid used in the exact solver
-    :type exact_grid_size: int
-    :return: xgrid_exact
-    :rtype: npt.NDArray
-    :return: dx
-    :rtype: float
-    """
-    xgrid_exact = np.linspace(x_min, x_max, exact_grid_size)
-    dx = xgrid_exact[1] - xgrid_exact[0]
-    return xgrid_exact, dx
 
 # generate 1D potentials - taken from https://github.com/ScottHabershon/PS/blob/main/src/potentials.py
 
@@ -52,7 +29,7 @@ def potential_2004(grid: npt.NDArray):
     np.savetxt(f'{directory}potential_1.dat', np.column_stack((grid, v2)), fmt=('%5.10f'), header='x\tV = 0.5x**2 + 0.1x**3 + 0.01x**4')
     coeffs = [0,0.5,0.1,0.01]
     np.savetxt(f'{directory}potential_1_data.dat', np.hstack((coeffs,4.0)), fmt=('%5.10f'))
-    return v1, v2
+    return grid, v1, v2
 
 def polynomial(nord: int, xgrid: npt.NDArray, **kwargs) -> Tuple[npt.NDArray, npt.NDArray, int, float]:
     """
@@ -147,6 +124,28 @@ def random_potentials(number_of_potentials, nord, grid, coeff_min, coeff_max, v_
         np.savetxt(f'{directory}potential_{i}_data.dat', np.hstack((coeffs, order)), fmt=('%5.10f'), header='coeffs & order')
 
 # solve Schrödinger eqn for potentials
+# CM-DVR functions
+# generate grids - https://github.com/ScottHabershon/PS/blob/main/src/grids.py
+
+def get_exact_grid(x_min: float, x_max: float, exact_grid_size: int) -> npt.NDArray:
+    """
+    Generates linearly space grid to be used in the exact solver.
+
+    :param x_min: minimum value of the grid
+    :type x_min: float
+    :param x_max: maximium value of the grid
+    :type x_max: float
+    :param exact_grid_size: size of the grid used in the exact solver
+    :type exact_grid_size: int
+    :return: xgrid_exact
+    :rtype: npt.NDArray
+    :return: dx
+    :rtype: float
+    """
+    xgrid_exact = np.linspace(x_min, x_max, exact_grid_size)
+    dx = xgrid_exact[1] - xgrid_exact[0]
+    return xgrid_exact, dx
+
 # CM DVR taken from https://github.com/ScottHabershon/PS/blob/main/src/exact_solver.py
 
 def colbert_miller_DVR(ngrid, x, m, v):
@@ -244,7 +243,7 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     C = C.real 
     return C
 
-def calculate_TCF_2004(range_E, beta):
+def calculate_TCF_2004(grid, range_E, beta):
     print("Using potentials calculated with potential_2004")
     dat_dir = '2004/potential/dat/'
     png_dir = '2004/potential/png/'
@@ -255,7 +254,8 @@ def calculate_TCF_2004(range_E, beta):
         if not os.path.exists(d):
             os.makedirs(d)
     
-    grid, v1 = np.loadtxt(f'{dat_dir}potential_0.dat', unpack=True)
+    grid, v1,v2 = potential_2004(grid)
+
     # v1 =  1/4 x^4 (0 x - x3)
     plt.plot(grid, v1)
     plt.savefig(f'{png_dir}potential_0.png')
@@ -269,7 +269,6 @@ def calculate_TCF_2004(range_E, beta):
     plt.savefig(f'{kpng_dir}Kubo_0.png')
     plt.close()
 
-    grid, v2 = np.loadtxt(f'{dat_dir}potential_1.dat', unpack=True)
     # v2 =  0x + 1/2x^2 + 0.1x^3 + 0.01x^4
     plt.plot(grid, v2)
     plt.savefig(f'{png_dir}potential_1.png')
@@ -346,8 +345,7 @@ v_min = 5
 v_max = 100000
 
 def main():
-    potential_2004(grid)
-    calculate_TCF_2004(range_E = 10, beta=1)
+    calculate_TCF_2004(grid, range_E = 10, beta=1)
     calculate_TCF(npot,range_E=10, beta=1, grid=grid)
 
 if __name__ == "__main__":
