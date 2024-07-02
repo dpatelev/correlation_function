@@ -1,5 +1,4 @@
 # goal - code to calculate 1D correlation functions for given potentials, using classical MD
-# TODO - what is the bare minimum (i.e. no plots) for program synthesis?
 
 import os
 import glob
