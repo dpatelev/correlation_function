@@ -11,6 +11,16 @@ import yaml
 # Classical MD functions
 # Regen potential & obtain energy & force expressions
 def potential(filepath):
+    """
+    Regenerates polynomial expression from the data file and returns lambda expressions for the potential energy and force.
+
+    Args:
+        filepath: path to file
+
+    Returns:
+        lam_e: lambda expression for potential energy
+        lam_f: lambda expression for force
+    """
     # regenerates expression from potential data file
     # returns python lambda expressions for energy (V(x)) and force (F(x)) to be used in individual calculations (see potential_energy_force for actual use in MD)
     coeffs_array = np.loadtxt(filepath)
@@ -35,6 +45,19 @@ def potential(filepath):
     return lam_e, lam_f
 
 def potential_energy_force(x, lam_e, lam_f):
+    """
+    Returns the potential energy and force of a particle based on its position x.
+
+    Args:
+        x: position
+        lam_e: lambda expression for potential energy
+        lam_f: lambda expression for force
+
+    Returns:
+        energy: potential energy on particle at position x
+        force: force on particle at position x
+
+    """
     # returns expressions of energy and force based on potential()
     energy = lam_e(x)
     force = lam_f(x)
@@ -42,6 +65,16 @@ def potential_energy_force(x, lam_e, lam_f):
 
 # sample velocity
 def sample(beta, m):
+    """
+    Randomly picks a velocity from the normal distribution with width parameter sigma.
+
+    Args:
+        beta: inverse temperature
+        m: mass of particle
+    
+    Returns:
+    v: velocity of particle
+    """
     sigma = np.sqrt(1/(beta*m))
     v = np.random.normal(0,sigma)
     return v
@@ -49,15 +82,57 @@ def sample(beta, m):
 # velocity verlet functions
 # functions to update position and velocity of particle for 1 timestep
 def upd_pos(x,v,m,dt,f):
+    """
+    Updates position of particle according to the velocity Verlet algorithm.
+    
+    Args:
+        x: position
+        v: velocity
+        m: mass
+        dt: timestep
+        f: force
+    
+    Returns:
+        x_new: new position of particle
+    """    
     x_new = x + v*dt + 0.5 * m * f * dt**2
     return x_new
 
 def upd_vel(v,m,dt,f,f_new):
+    """
+    Updates velocity of particle according to the velocity Verlet algorithm.
+    
+    Args:
+        v: velocity
+        m: mass
+        dt: timestep
+        f: force
+        f_new: new force on particle
+    
+    Returns:
+        v_new: new velocity of particle
+    """
     v_new = v + 0.5* m * (f + f_new) * dt
     return v_new
 
 # velocity verlet for 1 timestep
 def velocity_verlet_1(x_init, v_init, m, dt, lam_e, lam_f):
+    """
+    Returns the position & velocity on a particle, and the total energy after 1 velocity Verlet timestep.
+
+    Args:
+        x_init: initial position
+        v_init: initial velocity
+        m: mass
+        dt: timestep
+        lam_e: lambda expression for potential energy
+        lam_f: lambda expression for force
+
+    Returns:
+        x: position
+        v: velocity
+        total_energy: total energy of system
+    """
     # initial position and velocity
     x = x_init
     v = v_init
@@ -78,6 +153,28 @@ def velocity_verlet_1(x_init, v_init, m, dt, lam_e, lam_f):
 # main MD function
 # equilibration time and dynamics time - 2 different max times
 def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau, lam_e, lam_f):
+    """
+    Runs a full, single velocity Verlet MD trajectory with equilibration and dynamics.
+
+    Args:
+        beta: inverse T
+        x_init: initial position
+        m: mass
+        eq_time: equilibration time
+        max_time: full length of simulation
+        dt: timestep
+        tau: threshold for Anderson thermostat
+        lam_e: lambda expression for potential energy
+        lam_f: lambda expression for force
+
+    Returns:
+        times: full time seroes
+        dy_times: time series used in dynamics
+        positions: positions of particle
+        velocities: velocities of particle
+        energies: total energies of the system
+    """
+
     # lambda energy and forces
     lam_e = lam_e
     lam_f = lam_f
@@ -118,6 +215,14 @@ def velocity_verlet(beta, x_init, m, eq_time, max_time,dt,tau, lam_e, lam_f):
 
 # calculating position auto correlation function for 1 trajectory
 def position_auto_correlation_function(dy_times, positions):
+    """
+    Calculates the position auto correlation function for a single trajectory.
+    Args:
+        dy_times: time series used in dynamics
+        positions: positions of particle
+    Returns:
+        correlation_function: array of position auto correlation function
+    """
     correlation_function = []
 
     for t in range(len(dy_times)):
@@ -127,6 +232,25 @@ def position_auto_correlation_function(dy_times, positions):
     return correlation_function
 
 def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f):
+    """
+    Carries out num_traj MD trajectories and calculates the average position auto correlation function.
+
+    Args:
+        num_traj: number of trajectories
+        beta: inverse T
+        x_init: initial position
+        mass: mass
+        eq_time: equilibration time
+        max_time: full length of simulation
+        dt: timestep
+        tau: threshold for Anderson thermostat
+        lam_e: lambda expression for potential energy
+        lam_f: lambda expression for force
+    
+    Returns:
+        Ct_all: averaged position auto correlation function
+        dy_times: time series used in dynamics
+    """
     num_traj = num_traj
     beta = beta
     x_init = x_init
@@ -154,6 +278,9 @@ def ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e,
     return Ct_all, dy_times
 
 def main():
+    """
+    Runs MD simulations and calculates TCF for all potential files.
+    """
     with open('traj_input.yaml', 'r') as file:
         data = yaml.safe_load(file)
     items = list(data.items())

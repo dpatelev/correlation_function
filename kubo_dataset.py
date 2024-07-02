@@ -103,10 +103,19 @@ def generate_polynomial(nord: int, xgrid: npt.NDArray, coeff_min: float, coeff_m
                     print("bound!")
                     return Vtarg, coeff, order, vm
 
-def random_potentials(number_of_potentials, nord, grid, coeff_min, coeff_max, v_min, v_max):
-    # Generates potentials of maximum order of nord of the form
-    # V(x) = sum_{k=1}^{nord} a_{k} x^{k}
-    # a_k coefficients are selected randomly from the range coeff_min to coeff_max
+def random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max):
+    """
+    Generates npot number of potentials with maximum order of nord of the form: V(x) = sum_{k=1}^{nord} a_{k} x^{k}, and saves data to files.
+
+    Args:
+        npot: number of potentials
+        nord: maximum order of potential
+        coeff_min: min value of coeffs to be randomly generated
+        coeff_max: max value of coeffs to be randomly generated
+        V_min: minimum value of potential to be generated
+        V_max: maximum value of potential to be generated
+
+    """
     grid = grid
     nord = nord
     coeff_min = coeff_min
@@ -117,7 +126,7 @@ def random_potentials(number_of_potentials, nord, grid, coeff_min, coeff_max, v_
     directory = 'output/potential/dat/'
     if not os.path.exists(directory):
         os.makedirs(directory)
-    for i in range(number_of_potentials):
+    for i in range(npot):
         v, coeffs, order, vmin = polynomial(nord, grid, coeff_min=coeff_min, coeff_max=coeff_max, v_min=v_min, v_max=v_max)
         np.savetxt(f'{directory}potential_{i}.dat', np.column_stack((grid, v)), fmt=('%5.10f'), header='x\tV')
         np.savetxt(f'{directory}potential_{i}_data.dat', np.hstack((coeffs, order)), fmt=('%5.10f'), header='coeffs & order')
@@ -203,19 +212,19 @@ def colbert_miller_DVR(ngrid, x, m, v):
 
 def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     """
-    Calculates the Kubo transformed correlation function on the given grid, with the given eigenvalues and wavefunctions.
+    Calculates the Kubo transformed correlation function (TCF) on the given grid, with the given eigenvalues and wavefunctions for each timestep in times.
 
     Args:
-    grid: linearly spaced grid
-    E: array of eigenvalues of the system
-    c[;0]: the groundstate wavefunction of the system
-    dx: grid spacing
-    times: array of timesteps
-    range_E: range of eigenvalues to calculate the TCF with
-    beta: inverse temperature (1/k_b*T)
+        grid: linearly spaced grid
+        E: array of eigenvalues of the system
+        c[;0]: the groundstate wavefunction of the system
+        dx: grid spacing
+        times: array of timesteps
+        range_E: range of eigenvalues to calculate the TCF with
+        beta: inverse temperature (1/k_b*T)
 
     Returns:
-    C: The Kubo TCF calculated at each timestep in times
+        C: Kubo TCF
 
     """
     # calculate and accumulate the partition function for the entire system
@@ -243,6 +252,18 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     return C
 
 def calculate_TCF_2004(grid_size, range_E, beta, m, dx, t):
+    """
+    Calculates the Kubo TCF for the potentials given in Manolopolous (2004) and saves & plots the data to files.
+
+    Args:
+        grid_size: size of grid
+        range_E: number of eigenvalues to use in the calculation
+        beta: inverse T
+        m: mass
+        dx: grid spacing
+        t: time
+
+    """
     print("Using potentials calculated with potential_2004")
     dat_dir = '2004/potential/dat/'
     png_dir = '2004/potential/png/'
@@ -282,6 +303,19 @@ def calculate_TCF_2004(grid_size, range_E, beta, m, dx, t):
     plt.close()
 
 def calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t):
+    """
+    Calculates the Kubo TCF for npot potentials and saves plots & data to files.
+
+    Args:
+        npot: number of random potentials to generate
+        range_E: number of eigenvalues to use in the calculation
+        beta: inverse T
+        grid: linearly spaced grid
+        grid_size: size of grid
+        m: mass
+        dx: grid spacing
+        t: time
+    """
 
     dat = 'output/potential/dat/'
     kubo_dat = 'output/Kubo/dat/'
@@ -320,6 +354,9 @@ def calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t):
         print(f'Saved to {kubo_png}Kubo_{i}.png')
 
 def main():
+    """
+    Reads data from kubo_input.yaml and executes relevant code.
+    """
     with open('kubo_input.yaml', 'r') as file:
         data = yaml.safe_load(file)
     items = list(data.items())
