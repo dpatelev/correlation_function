@@ -12,7 +12,7 @@ max_time: 20
 
 # generate random potentials
 npot: 10
-nord: 5 # order 6 causes overflow error when running MD trajectories
+nord: 6
 coeff_min: -5
 coeff_max: 5
 v_min: 5

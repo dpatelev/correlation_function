@@ -5,4 +5,4 @@ mass: 1
 max_time: 40
 dt: 0.1
 tau: 0.005
-directory: '2004'
+directory: 'output'
