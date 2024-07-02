@@ -22,3 +22,4 @@ range_E: 10
 beta: 1
 
 test: False
+new_potentials: False

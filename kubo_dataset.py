@@ -339,6 +339,7 @@ def main():
     range_E = items[12][1]
     beta = items[13][1]
     test = items[14][1]
+    new_potentials = items[15][1]
 
     t = np.arange(0,max_time, dt)
     grid, dx = get_exact_grid(x_min,x_max,grid_size)
@@ -346,9 +347,13 @@ def main():
         calculate_TCF_2004(grid_size, range_E, beta, m, dx, t)
         print("Generated Kubo TCF for Manolopolous (2004) potentials")
     elif test == False:
-        random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
-        calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t)
-        print(f"Generated {npot} random potentials and their Kubo TCF")
+        if new_potentials == True:
+            print(f"Generating {npot} new potentials!")
+            random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
+        else:
+            print('Using existing potentials in output/')
+            calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t)
+            print(f"Dataset generation complete!")
 
 if __name__ == "__main__":
     main()
