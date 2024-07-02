@@ -242,7 +242,7 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     C = C.real 
     return C
 
-def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
+def calculate_TCF_2004(grid_size, range_E, beta, m, dx, t):
     print("Using potentials calculated with potential_2004")
     dat_dir = '2004/potential/dat/'
     png_dir = '2004/potential/png/'
@@ -253,7 +253,7 @@ def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
         if not os.path.exists(d):
             os.makedirs(d)
     
-    grid, v1,v2 = potential_2004(grid)
+    grid, v1, v2 = potential_2004(grid)
 
     # v1 =  1/4 x^4 (0 x - x3)
     plt.plot(grid, v1)
@@ -281,8 +281,7 @@ def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
     plt.savefig(f'{kpng_dir}Kubo_1.png')
     plt.close()
 
-def calculate_TCF(npot, nord, coeff_min, coeff_max, v_min, v_max, range_E, beta, grid, grid_size, m, dx, t):
-    random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
+def calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t):
 
     dat = 'output/potential/dat/'
     kubo_dat = 'output/Kubo/dat/'
@@ -320,7 +319,6 @@ def calculate_TCF(npot, nord, coeff_min, coeff_max, v_min, v_max, range_E, beta,
         plt.close()
         print(f'Saved to {kubo_png}Kubo_{i}.png')
 
-
 def main():
     with open('kubo_input.yaml', 'r') as file:
         data = yaml.safe_load(file)
@@ -345,11 +343,12 @@ def main():
     t = np.arange(0,max_time, dt)
     grid, dx = get_exact_grid(x_min,x_max,grid_size)
     if test == True:
-        calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t)
+        calculate_TCF_2004(grid_size, range_E, beta, m, dx, t)
         print("Generated Kubo TCF for Manolopolous (2004) potentials")
     elif test == False:
-        calculate_TCF(npot, nord, coeff_min, coeff_max, v_min, v_max, range_E, beta, grid, grid_size, m, dx, t)
-        print(f"Generated {npot} random potentials and corresponding TCF")
+        random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
+        calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t)
+        print(f"Generated {npot} random potentials and their Kubo TCF")
 
 if __name__ == "__main__":
     main()
