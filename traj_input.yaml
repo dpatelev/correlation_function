@@ -1,5 +1,5 @@
-num_traj: 5000
-beta: 1
+num_traj: 1000
+beta: [1,10]
 x_init: 0
 mass: 1
 max_time: 40

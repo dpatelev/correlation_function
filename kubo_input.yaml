@@ -11,15 +11,15 @@ dt: 0.1
 max_time: 20
 
 # generate random potentials
-npot: 10
-nord: 6
+npot: 5
+nord: 5
 coeff_min: -5
 coeff_max: 5
 v_min: 5
 v_max: 100000
 
 range_E: 10
-beta: 1
+beta: [1,10]
 
 test: False
-new_potentials: False
+new_potentials: True

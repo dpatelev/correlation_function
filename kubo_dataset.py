@@ -251,7 +251,7 @@ def Kubo_TCF(grid, E, c, dx, times, range_E, beta=1):
     C = C.real 
     return C
 
-def calculate_TCF_2004(grid_size, range_E, beta, m, dx, t):
+def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
     """
     Calculates the Kubo TCF for the potentials given in Manolopolous (2004) and saves & plots the data to files.
 
@@ -284,9 +284,9 @@ def calculate_TCF_2004(grid_size, range_E, beta, m, dx, t):
     range_E = range_E
     C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
     data = np.column_stack((t,C))
-    np.savetxt(f'{kdat_dir}Kubo_0.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+    np.savetxt(f'{kdat_dir}Kubo_0_{beta}.dat', data, fmt=('%5.2f', '%5.10f'),header='t\tC')
     plt.plot(t, C)
-    plt.savefig(f'{kpng_dir}Kubo_0.png')
+    plt.savefig(f'{kpng_dir}Kubo_0_{beta}.png')
     plt.close()
 
     # v2 =  0x + 1/2x^2 + 0.1x^3 + 0.01x^4
@@ -297,9 +297,9 @@ def calculate_TCF_2004(grid_size, range_E, beta, m, dx, t):
     range_E = range_E
     C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
     data = np.column_stack((t,C))
-    np.savetxt(f'{kdat_dir}Kubo_1.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+    np.savetxt(f'{kdat_dir}Kubo_1_{beta}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
     plt.plot(t, C)
-    plt.savefig(f'{kpng_dir}Kubo_1.png')
+    plt.savefig(f'{kpng_dir}Kubo_1_{beta}.png')
     plt.close()
 
 def calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t):
@@ -330,28 +330,29 @@ def calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t):
     for i in range(npot):
         print(f'Loading potential_{i}...')
         grid, v = np.loadtxt(f'{dat}potential_{i}.dat', unpack=True)
-            
+                
         plt.plot(grid, v)
         plt.xlabel("Position")
         plt.ylabel("V(x)")
         plt.savefig(f'{pot_png}potential_{i}.png')
         plt.close()
+        for j in beta:
 
-        # returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
-        c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
+            # returns c - ground state wavefunction - ith column of c contains wavefunction phi(i), E - eigenvalues, H - hamiltonian, of the system
+            c, E, H = colbert_miller_DVR(grid_size, grid, m, v)
 
-        # set range of eigenvalues to use when calculating TCF - can use all (set to len(E))!
-        range_E = range_E
-        C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
-        # save Kubo TCF data to file - also potential data to file
-        data = np.column_stack((t,C))
-        np.savetxt(f'{kubo_dat}Kubo_{i}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
-        plt.plot(t, C)
-        plt.xlabel("Time")
-        plt.ylabel("Kubo TCF")
-        plt.savefig(f'{kubo_png}Kubo_{i}.png')
-        plt.close()
-        print(f'Saved to {kubo_png}Kubo_{i}.png')
+            # set range of eigenvalues to use when calculating TCF - can use all (set to len(E))!
+            range_E = range_E
+            C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=j)
+            # save Kubo TCF data to file - also potential data to file
+            data = np.column_stack((t,C))
+            np.savetxt(f'{kubo_dat}Kubo_{i}_{j}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+            plt.plot(t, C)
+            plt.xlabel("Time")
+            plt.ylabel("Kubo TCF")
+            plt.savefig(f'{kubo_png}Kubo_{i}_{j}.png')
+            plt.close()
+            print(f'Saved to {kubo_png}Kubo_{i}_{j}.png')
 
 def main():
     """
@@ -381,12 +382,13 @@ def main():
     t = np.arange(0,max_time, dt)
     grid, dx = get_exact_grid(x_min,x_max,grid_size)
     if test == True:
-        calculate_TCF_2004(grid_size, range_E, beta, m, dx, t)
+        calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t)
         print("Generated Kubo TCF for Manolopolous (2004) potentials")
     elif test == False:
         if new_potentials == True:
             print(f"Generating {npot} new potentials!")
             random_potentials(npot, nord, grid, coeff_min, coeff_max, v_min, v_max)
+            calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t)
         else:
             print('Using existing potentials in output/')
             calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t)

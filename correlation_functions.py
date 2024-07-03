@@ -300,20 +300,21 @@ def main():
         filepath = f'{dir}potential_{i}_data.dat'
         lam_e, lam_f = potential(filepath)
         print(f'Running MD trajectories for potential {i}......')
-        Ct_all, dy_times = ensemble_TCF(num_traj,beta, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
-        print(f'Saving calculated Kubo TCF {i} to file')
+        for j in beta:
+            Ct_all, dy_times = ensemble_TCF(num_traj,j, x_init, mass, eq_time, max_time, dt, tau, lam_e, lam_f)
+            print(f'Saving calculated Kubo TCF for potential {i} and beta = {j} to file')
 
-        dir_png = f'{directory}/MD/png/'
-        dir_dat = f'{directory}/MD/dat/'
-        dirs = [dir_png, dir_dat]
-        for d in dirs:
-            if not os.path.exists(d):
-                os.makedirs(d)
-        plt.plot(dy_times, Ct_all)
-        plt.savefig(f'{dir_png}calc_Kubo_{i}.png')
-        plt.close()
+            dir_png = f'{directory}/MD/png/'
+            dir_dat = f'{directory}/MD/dat/'
+            dirs = [dir_png, dir_dat]
+            for d in dirs:
+                if not os.path.exists(d):
+                    os.makedirs(d)
+            plt.plot(dy_times, Ct_all)
+            plt.savefig(f'{dir_png}calc_Kubo_{i}_{j}.png')
+            plt.close()
 
-        np.savetxt(f'{dir_dat}calc_Kubo_{i}.dat', np.column_stack((dy_times,Ct_all)), fmt=('%5.2f', '%5.10f'),header='t\tC(t)')
+            np.savetxt(f'{dir_dat}calc_Kubo_{i}_{j}.dat', np.column_stack((dy_times,Ct_all)), fmt=('%5.2f', '%5.10f'),header='t\tC(t)')
     print('Complete!')
 
 if __name__ == "__main__":
