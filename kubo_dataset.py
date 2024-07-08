@@ -282,12 +282,13 @@ def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
     plt.close()
     c, E, H = colbert_miller_DVR(grid_size, grid, m, v1)
     range_E = range_E
-    C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
-    data = np.column_stack((t,C))
-    np.savetxt(f'{kdat_dir}Kubo_0_{beta}.dat', data, fmt=('%5.2f', '%5.10f'),header='t\tC')
-    plt.plot(t, C)
-    plt.savefig(f'{kpng_dir}Kubo_0_{beta}.png')
-    plt.close()
+    for j in beta:
+        C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=j)
+        data = np.column_stack((t,C))
+        np.savetxt(f'{kdat_dir}Kubo_0_{j}.dat', data, fmt=('%5.2f', '%5.10f'),header='t\tC')
+        plt.plot(t, C)
+        plt.savefig(f'{kpng_dir}Kubo_0_{j}.png')
+        plt.close()
 
     # v2 =  0x + 1/2x^2 + 0.1x^3 + 0.01x^4
     plt.plot(grid, v2)
@@ -295,12 +296,13 @@ def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
     plt.close()
     c, E, H = colbert_miller_DVR(grid_size, grid, m, v2)
     range_E = range_E
-    C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=beta)
-    data = np.column_stack((t,C))
-    np.savetxt(f'{kdat_dir}Kubo_1_{beta}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
-    plt.plot(t, C)
-    plt.savefig(f'{kpng_dir}Kubo_1_{beta}.png')
-    plt.close()
+    for j in beta:
+        C = Kubo_TCF(grid, E, c, dx, t, range_E, beta=j)
+        data = np.column_stack((t,C))
+        np.savetxt(f'{kdat_dir}Kubo_1_{j}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
+        plt.plot(t, C)
+        plt.savefig(f'{kpng_dir}Kubo_1_{j}.png')
+        plt.close()
 
 def calculate_TCF(npot, range_E, beta, grid, grid_size, m, dx, t):
     """
