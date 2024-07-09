@@ -20,15 +20,38 @@ def potential_2004(grid: npt.NDArray):
     directory = '2004/potential/dat/'
     if not os.path.exists(directory):
         os.makedirs(directory)
-    v1 = 0.25 * grid**4 # Manolopoulos (2004)
+    
+    order = 4
+    coeffs1 = np.asarray([0,0,0,0.25])
+    v1 = precomputed_polynomial(order,coeffs1,grid) # Manolopoulos (2004)
     np.savetxt(f'{directory}potential_0.dat', np.column_stack((grid, v1)), fmt=('%5.10f'), header='x\tV = 0.25x**4')
-    coeffs = [0,0,0,0.25]
-    np.savetxt(f'{directory}potential_0_data.dat', np.hstack((coeffs,4.0)), fmt=('%5.10f'))
-    v2 = 0.5*(grid**2) + 0.1*(grid**3) + 0.01*(grid**4) # Manolopoulos (2004)
+    np.savetxt(f'{directory}potential_0_data.dat', np.hstack((coeffs1,order)), fmt=('%5.10f'))
+
+    coeffs2 = np.asarray([0,0.5,0.1,0.01])
+    v2 = precomputed_polynomial(order,coeffs2,grid) # Manolopoulos (2004)
     np.savetxt(f'{directory}potential_1.dat', np.column_stack((grid, v2)), fmt=('%5.10f'), header='x\tV = 0.5x**2 + 0.1x**3 + 0.01x**4')
-    coeffs = [0,0.5,0.1,0.01]
-    np.savetxt(f'{directory}potential_1_data.dat', np.hstack((coeffs,4.0)), fmt=('%5.10f'))
+    np.savetxt(f'{directory}potential_1_data.dat', np.hstack((coeffs2,order)), fmt=('%5.10f'))
     return grid, v1, v2
+
+def precomputed_polynomial(order: int, coeffs: npt.NDArray, xgrid: npt.NDArray) -> npt.NDArray:
+    """
+    Returns the polynomial corresponding to prespecified coeffs and polynomial order.
+
+    :param order: order of polynomial
+    :type order: int
+    :param coeffs: precomputed coeffs
+    :type coeffs: npt.NDArray
+    :param xgrid: x grid
+    :type xgrid: npt.NDArray
+    :return: v_grid
+    :rtype: npt.NDArray
+    """
+    v_grid = np.zeros(np.shape(xgrid))
+    for j in range(order):
+        v_grid[:] += coeffs[j] * (xgrid) ** (j + 1)
+    v_min = min(v_grid[:])
+    v_grid[:] -= v_min
+    return v_grid
 
 def polynomial(nord: int, xgrid: npt.NDArray, **kwargs) -> Tuple[npt.NDArray, npt.NDArray, int, float]:
     """
