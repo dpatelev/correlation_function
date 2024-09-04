@@ -310,6 +310,8 @@ def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
         data = np.column_stack((t,C))
         np.savetxt(f'{kdat_dir}Kubo_0_{j}.dat', data, fmt=('%5.2f', '%5.10f'),header='t\tC')
         plt.plot(t, C)
+        plt.xlabel('Time')
+        plt.ylabel('Kubo TCF')
         plt.savefig(f'{kpng_dir}Kubo_0_{j}.png')
         plt.close()
 
@@ -324,6 +326,8 @@ def calculate_TCF_2004(grid, grid_size, range_E, beta, m, dx, t):
         data = np.column_stack((t,C))
         np.savetxt(f'{kdat_dir}Kubo_1_{j}.dat', data, fmt=('%5.2f', '%5.10f'), header='t\tC')
         plt.plot(t, C)
+        plt.xlabel('Time')
+        plt.ylabel('Kubo TCF')
         plt.savefig(f'{kpng_dir}Kubo_1_{j}.png')
         plt.close()
 

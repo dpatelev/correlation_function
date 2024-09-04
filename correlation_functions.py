@@ -311,6 +311,8 @@ def main():
                 if not os.path.exists(d):
                     os.makedirs(d)
             plt.plot(dy_times, Ct_all)
+            plt.xlabel('Time')
+            plt.ylabel('Classical TCF')
             plt.savefig(f'{dir_png}calc_Kubo_{i}_{j}.png')
             plt.close()
 
